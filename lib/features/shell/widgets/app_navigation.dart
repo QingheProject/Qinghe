@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
+import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/brand_mark.dart';
 
 typedef _Destination = ({
@@ -150,6 +151,11 @@ class AppSideRail extends StatelessWidget {
 
   static const _itemHeight = 64.0;
   static const _width = 76.0;
+  static const _tileInset = 4.0;
+
+  /// 面板与选中块都用圆角矩形，整条不再是胶囊形状。
+  static const _panelRadius = AppRadius.xl;
+  static const _tileRadius = AppRadius.md;
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +166,8 @@ class AppSideRail extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: _GlassPanel(
+          key: const ValueKey('side-rail-panel'),
+          radius: _panelRadius,
           child: SizedBox(
             width: _width,
             child: Padding(
@@ -171,23 +179,45 @@ class AppSideRail extends StatelessWidget {
                   const SizedBox(height: 22),
                   SizedBox(
                     height: _itemHeight * _destinations.length,
+                    width: double.infinity,
                     child: Stack(
+                      fit: StackFit.passthrough,
                       children: [
                         AnimatedPositioned(
                           duration: AppMotion.of(context, AppMotion.medium),
                           curve: AppMotion.emphasized,
-                          left: 0,
-                          right: 0,
-                          top: selectedIndex * _itemHeight,
-                          height: _itemHeight,
+                          left: _tileInset,
+                          right: _tileInset,
+                          top: selectedIndex * _itemHeight + _tileInset,
+                          height: _itemHeight - _tileInset * 2,
                           child: DecoratedBox(
+                            key: const ValueKey('side-rail-selection'),
                             decoration: BoxDecoration(
-                              color: colors.accentSoft.withValues(alpha: 0.86),
-                              borderRadius: BorderRadius.circular(_itemRadius),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  colors.accentSoft,
+                                  Color.alphaBlend(
+                                    colors.accent.withValues(alpha: 0.12),
+                                    colors.accentSoft,
+                                  ),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(_tileRadius),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colors.accent.withValues(alpha: 0.18),
+                                  blurRadius: 16,
+                                  spreadRadius: -2,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                         Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             for (
                               var index = 0;
@@ -201,6 +231,9 @@ class AppSideRail extends StatelessWidget {
                                   selected: index == selectedIndex,
                                   contentStyle:
                                       NavigationContentStyle.iconsAndLabels,
+                                  borderRadius: BorderRadius.circular(
+                                    _tileRadius,
+                                  ),
                                   onTap: () => onSelected(index),
                                 ),
                               ),
@@ -220,9 +253,10 @@ class AppSideRail extends StatelessWidget {
 }
 
 class _GlassPanel extends StatelessWidget {
-  const _GlassPanel({required this.child});
+  const _GlassPanel({required this.child, this.radius = _barRadius, super.key});
 
   final Widget child;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
@@ -230,13 +264,13 @@ class _GlassPanel extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(_barRadius),
+      borderRadius: BorderRadius.circular(radius),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: colors.surface.withValues(alpha: dark ? 0.72 : 0.82),
-            borderRadius: BorderRadius.circular(_barRadius),
+            borderRadius: BorderRadius.circular(radius),
             border: Border.all(
               color: colors.line.withValues(alpha: dark ? 0.72 : 0.9),
             ),
@@ -254,17 +288,19 @@ class _NavItem extends StatelessWidget {
     required this.selected,
     required this.contentStyle,
     required this.onTap,
+    this.borderRadius = const BorderRadius.all(Radius.circular(_itemRadius)),
   });
 
   final _Destination destination;
   final bool selected;
   final NavigationContentStyle contentStyle;
   final VoidCallback onTap;
+  final BorderRadius borderRadius;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final color = selected ? colors.accent : colors.inkFaint;
+    final color = selected ? colors.accent : colors.inkMuted;
     final duration = AppMotion.of(context, AppMotion.fast);
     final showIcon = contentStyle != NavigationContentStyle.labels;
     final showLabel = contentStyle != NavigationContentStyle.icons;
@@ -278,9 +314,15 @@ class _NavItem extends StatelessWidget {
         child: InkWell(
           key: ValueKey(destination.key),
           onTap: selected ? null : onTap,
-          borderRadius: BorderRadius.circular(_itemRadius),
+          borderRadius: borderRadius,
           splashFactory: NoSplash.splashFactory,
-          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (selected) return Colors.transparent;
+            final active =
+                states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.focused);
+            return active ? colors.ink.withValues(alpha: 0.06) : null;
+          }),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
