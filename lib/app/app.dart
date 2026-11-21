@@ -6,6 +6,7 @@ import 'package:qinghe_app/app/app_binding.dart';
 import 'package:qinghe_app/app/routes/app_pages.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_theme.dart';
+import 'package:qinghe_app/app/widgets/desktop_window_frame.dart';
 
 class QingheApp extends StatefulWidget {
   const QingheApp({super.key});
@@ -47,7 +48,7 @@ class _QingheAppState extends State<QingheApp> {
               statusBarColor: Colors.transparent,
               systemNavigationBarColor: Theme.of(context).colorScheme.surface,
             ),
-            child: child ?? const SizedBox.shrink(),
+            child: DesktopWindowFrame(child: child ?? const SizedBox.shrink()),
           );
         },
       ),
