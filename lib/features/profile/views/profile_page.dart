@@ -28,6 +28,12 @@ class ProfilePage extends StatelessWidget {
             title: '课表',
             children: [
               AppListRow(
+                icon: Icons.view_week_outlined,
+                title: '课表外观',
+                subtitle: '尺寸、信息与间距',
+                onTap: () => Get.toNamed<void>(AppRoutes.scheduleAppearance),
+              ),
+              AppListRow(
                 icon: Icons.date_range_outlined,
                 title: '学期与节次',
                 trailing: soonTag,

@@ -48,6 +48,39 @@ class AppearancePage extends GetView<AppearanceController> {
                         ],
                       ),
                       const SizedBox(height: AppSpace.xxl),
+                      _ChoiceSection<AppAccentTone>(
+                        title: '主题配色',
+                        selected: controller.accentTone.value,
+                        onChanged: controller.setAccentTone,
+                        options: const [
+                          _AppearanceOption(
+                            value: AppAccentTone.qinghe,
+                            label: '青禾',
+                            preview: _AccentPreview(AppAccentTone.qinghe),
+                          ),
+                          _AppearanceOption(
+                            value: AppAccentTone.ocean,
+                            label: '海蓝',
+                            preview: _AccentPreview(AppAccentTone.ocean),
+                          ),
+                          _AppearanceOption(
+                            value: AppAccentTone.violet,
+                            label: '暮紫',
+                            preview: _AccentPreview(AppAccentTone.violet),
+                          ),
+                          _AppearanceOption(
+                            value: AppAccentTone.amber,
+                            label: '暖橙',
+                            preview: _AccentPreview(AppAccentTone.amber),
+                          ),
+                          _AppearanceOption(
+                            value: AppAccentTone.rose,
+                            label: '玫瑰',
+                            preview: _AccentPreview(AppAccentTone.rose),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpace.xxl),
                       _ChoiceSection<BottomBarStyle>(
                         title: '底栏形态',
                         selected: controller.bottomBarStyle.value,
@@ -146,9 +179,11 @@ class _ChoiceSection<T> extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             const gap = AppSpace.sm;
+            final columnCount = options.length > 3 && constraints.maxWidth < 560
+                ? 3
+                : options.length;
             final width =
-                (constraints.maxWidth - gap * (options.length - 1)) /
-                options.length;
+                (constraints.maxWidth - gap * (columnCount - 1)) / columnCount;
             return Wrap(
               spacing: gap,
               runSpacing: gap,
@@ -217,6 +252,48 @@ class _OptionCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AccentPreview extends StatelessWidget {
+  const _AccentPreview(this.tone);
+
+  final AppAccentTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.lightFor(tone);
+    return Container(
+      width: 68,
+      height: 48,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: palette.canvas,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 23,
+            height: 23,
+            decoration: BoxDecoration(
+              color: palette.accent,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: palette.accentSoft,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,8 +1,9 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/app.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
+import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
   tearDown(Get.reset);
+
+  test('主题配色共用完全中性的背景', () {
+    final lightCanvases = {
+      for (final tone in AppAccentTone.values) AppColors.lightFor(tone).canvas,
+    };
+    final darkCanvases = {
+      for (final tone in AppAccentTone.values) AppColors.darkFor(tone).canvas,
+    };
+
+    expect(lightCanvases, hasLength(1));
+    expect(darkCanvases, hasLength(1));
+    expect(AppColors.light.canvas, const Color(0xFFF6F6F6));
+    expect(AppColors.dark.canvas, const Color(0xFF111111));
+  });
 
   testWidgets('启动页结束后进入引导，逐步前进并进入首页', (tester) async {
     await tester.pumpWidget(const QingheApp());
@@ -56,6 +71,11 @@ void main() {
     }
     expect(tester.takeException(), isNull);
     expect(find.text('今日课程'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('schedule-grid')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('跳过引导后可以在三个主要页面之间切换', (tester) async {
@@ -71,7 +91,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-schedule')));
     await tester.pumpAndSettle();
     expect(shell.currentIndex.value, 1);
-    expect(find.text('周课表正在制作'), findsOneWidget);
+    expect(find.byKey(const ValueKey('schedule-grid')), findsOneWidget);
+    expect(find.byTooltip('上一周'), findsNothing);
+    expect(find.byTooltip('下一周'), findsNothing);
+    expect(find.byKey(const ValueKey('schedule-today-header')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('nav-profile')));
     await tester.pumpAndSettle();
@@ -96,6 +119,28 @@ void main() {
     expect(find.text('今日课程'), findsNothing);
   });
 
+  testWidgets('课表顶部不响应纵向滚动手势', (tester) async {
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('跳过'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+
+    final heading = find.byKey(const ValueKey('schedule-heading'));
+    final initialTop = tester.getTopLeft(heading).dy;
+    await tester.drag(heading, const Offset(0, -180));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(heading).dy, initialTop);
+
+    final grid = find.byKey(const ValueKey('schedule-grid'));
+    final initialGridTop = tester.getTopLeft(grid).dy;
+    await tester.drag(grid, const Offset(0, -180));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(grid).dy, lessThan(initialGridTop));
+  });
+
   testWidgets('外观设置可以切换主题、底栏形态和内容', (tester) async {
     await tester.pumpWidget(const QingheApp());
     await tester.pumpAndSettle();
@@ -112,15 +157,268 @@ void main() {
     await tester.pumpAndSettle();
     expect(appearance.themeMode.value, AppearanceThemeMode.dark);
 
-    await tester.tap(find.text('贴底'));
+    await tester.tap(find.text('暮紫'));
+    await tester.pumpAndSettle();
+    expect(appearance.accentTone.value, AppAccentTone.violet);
+    final themeContext = tester.element(find.text('主题配色'));
+    final appliedColors = Theme.of(themeContext).extension<AppColors>()!;
+    expect(
+      appliedColors.accent,
+      AppColors.darkFor(AppAccentTone.violet).accent,
+    );
+    expect(
+      appliedColors.canvas,
+      AppColors.darkFor(AppAccentTone.violet).canvas,
+    );
+    expect(appliedColors.canvas, AppColors.dark.canvas);
+
+    final fixedBarOption = find.text('贴底');
+    await tester.ensureVisible(fixedBarOption);
+    await tester.pumpAndSettle();
+    await tester.tap(fixedBarOption);
     await tester.pumpAndSettle();
     expect(appearance.bottomBarStyle.value, BottomBarStyle.fixed);
 
-    await tester.tap(find.text('仅文字'));
+    final labelsOption = find.text('仅文字');
+    await tester.ensureVisible(labelsOption);
+    await tester.pumpAndSettle();
+    await tester.tap(labelsOption);
     await tester.pumpAndSettle();
     expect(
       appearance.navigationContentStyle.value,
       NavigationContentStyle.labels,
     );
+  });
+
+  testWidgets('课表外观设置会实时更新模拟预览', (tester) async {
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('跳过'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('nav-profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课表外观'));
+    await tester.pumpAndSettle();
+
+    final appearance = Get.find<AppearanceController>();
+    final previewCard = find.byKey(
+      const ValueKey('schedule-preview-course-card'),
+    );
+    final initialHeight = tester.getSize(previewCard).height;
+
+    final paletteDrawer = find.byKey(const ValueKey('course-palette-drawer'));
+    await tester.ensureVisible(paletteDrawer);
+    await tester.tap(paletteDrawer);
+    await tester.pumpAndSettle();
+    expect(find.text('选择一套课程颜色'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('course-palette-monochrome')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('course-palette-ocean')));
+    await tester.pumpAndSettle();
+    expect(appearance.courseColorScheme.value, CourseColorScheme.ocean);
+
+    final centeredTextLayout = find.byKey(
+      const ValueKey('schedule-text-layout-center'),
+    );
+    await tester.ensureVisible(centeredTextLayout);
+    await tester.pumpAndSettle();
+    await tester.tap(centeredTextLayout);
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleTextLayout.value, ScheduleTextLayout.center);
+
+    final topTimeAlignment = find.byKey(
+      const ValueKey('schedule-time-alignment-top'),
+    );
+    await tester.ensureVisible(topTimeAlignment);
+    await tester.tap(topTimeAlignment);
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleTimeAlignment.value, ScheduleTimeAlignment.top);
+
+    final sideBySideRail = find.byKey(
+      const ValueKey('schedule-rail-layout-sideBySide'),
+    );
+    await tester.ensureVisible(sideBySideRail);
+    await tester.pumpAndSettle();
+    await tester.tap(sideBySideRail);
+    await tester.pumpAndSettle();
+    expect(
+      appearance.scheduleRailTextLayout.value,
+      ScheduleRailTextLayout.sideBySide,
+    );
+    expect(tester.takeException(), isNull);
+
+    final timeEditor = find.byKey(const ValueKey('schedule-time-editor'));
+    await tester.ensureVisible(timeEditor);
+    await tester.tap(timeEditor);
+    await tester.pumpAndSettle();
+    final durationSlider = find.byKey(
+      const ValueKey('schedule-duration-slider'),
+    );
+    await tester.drag(durationSlider, const Offset(60, 0));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('schedule-time-0')),
+      '08:15',
+    );
+    await tester.tap(find.byKey(const ValueKey('schedule-time-save')));
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleStartTimes.first, '08:15');
+    expect(appearance.schedulePeriodDuration.value, greaterThan(45));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('schedule-appearance-preview')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('08:15'), findsOneWidget);
+    expect(
+      find.text(
+        calculateScheduleEndTime(
+          '08:15',
+          appearance.schedulePeriodDuration.value.round(),
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    final heightSlider = find.descendant(
+      of: find.byKey(const ValueKey('schedule-height-slider')),
+      matching: find.byType(Slider),
+    );
+    await tester.ensureVisible(heightSlider);
+    await tester.pumpAndSettle();
+    await tester.drag(heightSlider, const Offset(140, 0));
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleRowHeight.value, greaterThan(52));
+    expect(tester.getSize(previewCard).height, greaterThan(initialHeight));
+
+    final widthSetting = find.byKey(const ValueKey('schedule-width-slider'));
+    await tester.ensureVisible(widthSetting);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.descendant(of: widthSetting, matching: find.byType(Slider)),
+      const Offset(-120, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleCardWidth.value, lessThan(1));
+
+    final verticalInsetSetting = find.byKey(
+      const ValueKey('schedule-vertical-inset-slider'),
+    );
+    await tester.ensureVisible(verticalInsetSetting);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.descendant(of: verticalInsetSetting, matching: find.byType(Slider)),
+      const Offset(100, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleVerticalInset.value, greaterThan(2));
+
+    final opacitySetting = find.byKey(
+      const ValueKey('schedule-opacity-slider'),
+    );
+    await tester.ensureVisible(opacitySetting);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.descendant(of: opacitySetting, matching: find.byType(Slider)),
+      const Offset(-120, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleCardOpacity.value, lessThan(1));
+
+    final saturationSetting = find.byKey(
+      const ValueKey('schedule-saturation-slider'),
+    );
+    await tester.ensureVisible(saturationSetting);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.descendant(of: saturationSetting, matching: find.byType(Slider)),
+      const Offset(-120, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleCourseSaturation.value, lessThan(1));
+
+    final borderSwitch = find.byKey(const ValueKey('schedule-border-switch'));
+    await tester.ensureVisible(borderSwitch);
+    await tester.pumpAndSettle();
+    await tester.tap(borderSwitch);
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleShowBorder.value, isTrue);
+
+    final borderWidthSetting = find.byKey(
+      const ValueKey('schedule-border-width-slider'),
+    );
+    await tester.ensureVisible(borderWidthSetting);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.descendant(of: borderWidthSetting, matching: find.byType(Slider)),
+      const Offset(120, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleBorderWidth.value, greaterThan(1));
+
+    final topLineSwitch = find.byKey(
+      const ValueKey('schedule-top-line-switch'),
+    );
+    await tester.ensureVisible(topLineSwitch);
+    await tester.pumpAndSettle();
+    await tester.tap(topLineSwitch);
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleShowTopLine.value, isFalse);
+
+    final gridLinesSwitch = find.byKey(
+      const ValueKey('schedule-grid-lines-switch'),
+    );
+    await tester.ensureVisible(gridLinesSwitch);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('schedule-preview-grid-line-1')),
+      findsOneWidget,
+    );
+    await tester.tap(gridLinesSwitch);
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleShowGridLines.value, isFalse);
+    expect(
+      find.byKey(const ValueKey('schedule-preview-grid-line-1')),
+      findsNothing,
+    );
+
+    final timeSwitch = find.byKey(const ValueKey('schedule-time-switch'));
+    await tester.ensureVisible(timeSwitch);
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleShowTime.value, isTrue);
+    await tester.tap(timeSwitch);
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleShowTime.value, isFalse);
+
+    final currentTimeLineSwitch = find.byKey(
+      const ValueKey('schedule-current-time-line-switch'),
+    );
+    await tester.ensureVisible(currentTimeLineSwitch);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('schedule-preview-current-time-line')),
+      findsOneWidget,
+    );
+    await tester.tap(currentTimeLineSwitch);
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleShowCurrentTimeLine.value, isFalse);
+    expect(
+      find.byKey(const ValueKey('schedule-preview-current-time-line')),
+      findsNothing,
+    );
+
+    final weekendSwitch = find.byKey(const ValueKey('schedule-weekend-switch'));
+    await tester.ensureVisible(weekendSwitch);
+    await tester.pumpAndSettle();
+    expect(find.text('周六'), findsOneWidget);
+    await tester.tap(weekendSwitch);
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleShowWeekend.value, isFalse);
+    expect(find.text('周六'), findsNothing);
+
+    expect(find.byKey(const ValueKey('schedule-appearance-preview')), findsOne);
+    expect(tester.takeException(), isNull);
   });
 }

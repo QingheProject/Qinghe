@@ -3,8 +3,14 @@ import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 
 abstract final class AppTheme {
-  static final light = _build(AppColors.light, Brightness.light);
-  static final dark = _build(AppColors.dark, Brightness.dark);
+  static final light = lightFor(AppAccentTone.qinghe);
+  static final dark = darkFor(AppAccentTone.qinghe);
+
+  static ThemeData lightFor(AppAccentTone tone) =>
+      _build(AppColors.lightFor(tone), Brightness.light);
+
+  static ThemeData darkFor(AppAccentTone tone) =>
+      _build(AppColors.darkFor(tone), Brightness.dark);
 
   static ThemeData _build(AppColors colors, Brightness brightness) {
     final scheme = ColorScheme(
