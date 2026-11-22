@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
@@ -295,7 +296,7 @@ class _BottomBar extends StatelessWidget {
                     : Padding(
                         padding: const EdgeInsets.only(right: 10),
                         child: IconAction(
-                          icon: Icons.arrow_back_rounded,
+                          icon: AppIcons.arrowBack,
                           label: '上一步',
                           onTap: controller.back,
                         ),
@@ -304,7 +305,7 @@ class _BottomBar extends StatelessWidget {
             ),
             AppButton(
               label: controller.isLast ? '开始使用' : '继续',
-              trailingIcon: Icons.arrow_forward_rounded,
+              trailingIcon: AppIcons.arrowForward,
               onPressed: controller.next,
             ),
           ],

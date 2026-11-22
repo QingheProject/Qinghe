@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 
 abstract final class AppTheme {
@@ -40,6 +42,28 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: colors.canvas,
       canvasColor: colors.canvas,
       textTheme: text,
+      iconTheme: IconThemeData(size: 20, color: colors.inkMuted),
+      actionIconTheme: ActionIconThemeData(
+        backButtonIconBuilder: (context) => const Icon(AppIcons.arrowBack),
+        closeButtonIconBuilder: (context) => const Icon(AppIcons.close),
+      ),
+      appBarTheme: AppBarTheme(
+        iconTheme: IconThemeData(size: 24, color: colors.ink),
+        backgroundColor: colors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      listTileTheme: ListTileThemeData(
+        titleTextStyle: text.bodyMedium,
+        subtitleTextStyle: text.bodySmall,
+      ),
+      expansionTileTheme: const ExpansionTileThemeData(
+        expansionAnimationStyle: AnimationStyle(
+          duration: AppMotion.medium,
+          reverseDuration: AppMotion.medium,
+        ),
+      ),
       inputDecorationTheme: InputDecorationThemeData(
         filled: true,
         fillColor: colors.surfaceMuted,

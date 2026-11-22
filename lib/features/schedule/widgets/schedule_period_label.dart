@@ -71,7 +71,11 @@ class SchedulePeriodLabel extends StatelessWidget {
           },
           child: Padding(
             padding: const EdgeInsets.fromLTRB(0, 3, 3, 3),
-            child: _content(periodText, times),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: _content(periodText, times),
+            ),
           ),
         ),
       ),

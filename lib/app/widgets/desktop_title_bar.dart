@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/brand_mark.dart';
 
@@ -64,21 +66,19 @@ class DesktopTitleBar extends StatelessWidget {
           ),
           _CaptionButton(
             buttonKey: const ValueKey('title-bar-minimize'),
-            icon: Icons.remove_rounded,
+            icon: AppIcons.windowMinimize,
             label: '最小化',
             onTap: onMinimize,
           ),
           _CaptionButton(
             buttonKey: const ValueKey('title-bar-maximize'),
-            icon: maximized
-                ? Icons.filter_none_rounded
-                : Icons.crop_square_rounded,
+            icon: maximized ? AppIcons.windowRestore : AppIcons.windowMaximize,
             label: maximized ? '还原' : '最大化',
             onTap: onToggleMaximize,
           ),
           _CaptionButton(
             buttonKey: const ValueKey('title-bar-close'),
-            icon: Icons.close_rounded,
+            icon: AppIcons.close,
             label: '关闭',
             onTap: onClose,
             destructive: true,
@@ -136,7 +136,7 @@ class _CaptionButtonState extends State<_CaptionButton> {
             behavior: HitTestBehavior.opaque,
             onTap: widget.onTap,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
+              duration: AppMotion.of(context, AppMotion.medium),
               width: 46,
               height: 40,
               color: background,

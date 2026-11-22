@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
+import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+import 'package:qinghe_app/app/widgets/app_button.dart';
+import 'package:qinghe_app/app/widgets/app_period_edit_row.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
+import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_lesson_card.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_period_label.dart';
 
@@ -14,6 +20,7 @@ class ScheduleAppearancePage extends GetView<AppearanceController> {
 
   @override
   Widget build(BuildContext context) {
+    final timetables = Get.find<LocalTimetableRepository>();
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(title: const Text('课表外观'), centerTitle: true),
@@ -37,6 +44,7 @@ class ScheduleAppearancePage extends GetView<AppearanceController> {
                         cardInset: controller.scheduleCardInset.value,
                         verticalInset: controller.scheduleVerticalInset.value,
                         cardOpacity: controller.scheduleCardOpacity.value,
+                        cardRadius: controller.scheduleCardRadius.value,
                         showBorder: controller.scheduleShowBorder.value,
                         borderWidth: controller.scheduleBorderWidth.value,
                         showTopLine: controller.scheduleShowTopLine.value,
@@ -70,7 +78,11 @@ class ScheduleAppearancePage extends GetView<AppearanceController> {
                         showTime: controller.scheduleShowTime.value,
                         alignment: controller.scheduleTimeAlignment.value,
                         startTimes: controller.scheduleStartTimes.toList(),
-                        periodDuration: controller.schedulePeriodDuration.value,
+                        periodDuration:
+                            timetables.active?.config.periodDurationMinutes
+                                .toDouble() ??
+                            controller.schedulePeriodDuration.value,
+                        hasSemester: timetables.active != null,
                         textLayout: controller.scheduleRailTextLayout.value,
                         onShowTimeChanged: controller.setScheduleShowTime,
                         onAlignmentChanged: controller.setScheduleTimeAlignment,
@@ -180,6 +192,19 @@ class ScheduleAppearancePage extends GetView<AppearanceController> {
                                 controller.previewScheduleCourseSaturation,
                             onChangeEnd: controller.setScheduleCourseSaturation,
                           ),
+                          _SliderSetting(
+                            key: const ValueKey('schedule-radius-slider'),
+                            title: '课程圆角',
+                            description: '调整课程块四角的圆润程度',
+                            value: controller.scheduleCardRadius.value,
+                            valueLabel:
+                                '${controller.scheduleCardRadius.value.round()}',
+                            minimum: 0,
+                            maximum: 20,
+                            divisions: 10,
+                            onChanged: controller.previewScheduleCardRadius,
+                            onChangeEnd: controller.setScheduleCardRadius,
+                          ),
                           _SwitchSetting(
                             key: const ValueKey('schedule-border-switch'),
                             title: '课程边框',
@@ -270,6 +295,7 @@ class _SchedulePreview extends StatelessWidget {
     required this.cardInset,
     required this.verticalInset,
     required this.cardOpacity,
+    required this.cardRadius,
     required this.showBorder,
     required this.borderWidth,
     required this.showTopLine,
@@ -319,6 +345,7 @@ class _SchedulePreview extends StatelessWidget {
   final double cardInset;
   final double verticalInset;
   final double cardOpacity;
+  final double cardRadius;
   final bool showBorder;
   final double borderWidth;
   final bool showTopLine;
@@ -442,6 +469,7 @@ class _SchedulePreview extends StatelessWidget {
                       cardInset: cardInset,
                       verticalInset: verticalInset,
                       cardOpacity: cardOpacity,
+                      cardRadius: cardRadius,
                       showBorder: showBorder,
                       borderWidth: borderWidth,
                       showTopLine: showTopLine,
@@ -462,6 +490,7 @@ class _SchedulePreview extends StatelessWidget {
                       cardInset: cardInset,
                       verticalInset: verticalInset,
                       cardOpacity: cardOpacity,
+                      cardRadius: cardRadius,
                       showBorder: showBorder,
                       borderWidth: borderWidth,
                       showTopLine: showTopLine,
@@ -520,6 +549,7 @@ class _PreviewLesson extends StatelessWidget {
     required this.cardInset,
     required this.verticalInset,
     required this.cardOpacity,
+    required this.cardRadius,
     required this.showBorder,
     required this.borderWidth,
     required this.showTopLine,
@@ -541,6 +571,7 @@ class _PreviewLesson extends StatelessWidget {
   final double cardInset;
   final double verticalInset;
   final double cardOpacity;
+  final double cardRadius;
   final bool showBorder;
   final double borderWidth;
   final bool showTopLine;
@@ -569,6 +600,7 @@ class _PreviewLesson extends StatelessWidget {
         colorScheme: colorScheme,
         saturation: saturation,
         backgroundOpacity: cardOpacity,
+        cornerRadius: cardRadius,
         showBorder: showBorder,
         borderWidth: borderWidth,
         showTopLine: showTopLine,
@@ -586,7 +618,6 @@ const _coursePaletteOptions = [
   (CourseColorScheme.ocean, '海风'),
   (CourseColorScheme.sunset, '暮色'),
   (CourseColorScheme.candy, '彩糖'),
-  (CourseColorScheme.monochrome, '黑白'),
 ];
 
 class _CoursePaletteSetting extends StatelessWidget {
@@ -622,8 +653,8 @@ class _CoursePaletteSetting extends StatelessWidget {
             color: colors.surface,
             borderRadius: BorderRadius.circular(AppRadius.lg),
             child: Container(
-              height: 68,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              constraints: const BoxConstraints(minHeight: 68),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
                   Expanded(
@@ -648,7 +679,7 @@ class _CoursePaletteSetting extends StatelessWidget {
                     saturation: saturation,
                   ),
                   const SizedBox(width: AppSpace.sm),
-                  Icon(Icons.keyboard_arrow_up_rounded, color: colors.inkMuted),
+                  Icon(AppIcons.chevronUp, color: colors.inkMuted),
                 ],
               ),
             ),
@@ -661,12 +692,13 @@ class _CoursePaletteSetting extends StatelessWidget {
   void _showPaletteDrawer(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: AppMotion.style(context),
       showDragHandle: true,
       isScrollControlled: true,
       backgroundColor: context.colors.surface,
       builder: (sheetContext) => SafeArea(
         top: false,
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -752,7 +784,7 @@ class _PaletteOption extends StatelessWidget {
               SizedBox(
                 width: 22,
                 child: selected
-                    ? Icon(Icons.check_rounded, size: 20, color: colors.accent)
+                    ? Icon(AppIcons.check, size: 20, color: colors.accent)
                     : null,
               ),
             ],
@@ -805,10 +837,10 @@ class _TextLayoutSelector extends StatelessWidget {
   const _TextLayoutSelector({required this.selected, required this.onChanged});
 
   static const _options = [
-    (ScheduleTextLayout.top, '靠上', Icons.vertical_align_top_rounded),
-    (ScheduleTextLayout.center, '居中', Icons.vertical_align_center_rounded),
-    (ScheduleTextLayout.bottom, '靠下', Icons.vertical_align_bottom_rounded),
-    (ScheduleTextLayout.spaced, '间隔', Icons.format_line_spacing_rounded),
+    (ScheduleTextLayout.top, '靠上', AppIcons.textTop),
+    (ScheduleTextLayout.center, '居中', AppIcons.textCenter),
+    (ScheduleTextLayout.bottom, '靠下', AppIcons.textBottom),
+    (ScheduleTextLayout.spaced, '间隔', AppIcons.textSpacing),
   ];
 
   final ScheduleTextLayout selected;
@@ -898,6 +930,7 @@ class _TimeSettings extends StatelessWidget {
     required this.alignment,
     required this.startTimes,
     required this.periodDuration,
+    required this.hasSemester,
     required this.textLayout,
     required this.onShowTimeChanged,
     required this.onAlignmentChanged,
@@ -909,6 +942,7 @@ class _TimeSettings extends StatelessWidget {
   final ScheduleTimeAlignment alignment;
   final List<String> startTimes;
   final double periodDuration;
+  final bool hasSemester;
   final ScheduleRailTextLayout textLayout;
   final ValueChanged<bool> onShowTimeChanged;
   final ValueChanged<ScheduleTimeAlignment> onAlignmentChanged;
@@ -937,12 +971,14 @@ class _TimeSettings extends StatelessWidget {
         ),
         Pressable(
           key: const ValueKey('schedule-time-editor'),
-          onTap: () => _showTimeEditor(context),
+          onTap: hasSemester
+              ? () => Get.toNamed<void>(AppRoutes.timetableImport)
+              : () => _showTimeEditor(context),
           color: context.colors.surface,
-          child: SizedBox(
-            height: 64,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 64),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
                   Expanded(
@@ -961,10 +997,7 @@ class _TimeSettings extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: context.colors.inkMuted,
-                  ),
+                  Icon(AppIcons.chevronRight, color: context.colors.inkMuted),
                 ],
               ),
             ),
@@ -977,6 +1010,7 @@ class _TimeSettings extends StatelessWidget {
   void _showTimeEditor(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: AppMotion.style(context),
       showDragHandle: true,
       isScrollControlled: true,
       backgroundColor: context.colors.surface,
@@ -1161,6 +1195,8 @@ class _TimeEditorSheet extends StatefulWidget {
 }
 
 class _TimeEditorSheetState extends State<_TimeEditorSheet> {
+  static const _durationDivisions = 20;
+
   final _formKey = GlobalKey<FormState>();
   late double _duration = widget.initialDuration;
   late final List<TextEditingController> _controllers = [
@@ -1177,79 +1213,77 @@ class _TimeEditorSheetState extends State<_TimeEditorSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final text = Theme.of(context).textTheme;
+    final saveButton = AppButton(
+      key: const ValueKey('schedule-time-save'),
+      label: '保存时间',
+      expand: true,
+      onPressed: _save,
+    );
     return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      duration: AppMotion.of(context, AppMotion.fast),
+      padding: EdgeInsets.only(bottom: keyboard),
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('自定义节次时间', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 2),
-              Text(
-                '设置开始时间和每节时长，结束时间会自动计算',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: AppSpace.md),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '每节课时长',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ),
-                  Text(
-                    '${_duration.round()} 分钟',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: context.colors.accent,
-                    ),
-                  ),
-                ],
-              ),
-              Slider(
-                key: const ValueKey('schedule-duration-slider'),
-                value: _duration,
-                min: 20,
-                max: 120,
-                divisions: 20,
-                label: '${_duration.round()} 分钟',
-                semanticFormatterCallback: (value) =>
-                    '每节课时长，${value.round()} 分钟',
-                onChanged: (value) => setState(() => _duration = value),
-              ),
-              const Divider(height: 1),
-              const SizedBox(height: AppSpace.md),
-              Expanded(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 child: Form(
                   key: _formKey,
-                  child: ListView.separated(
-                    padding: EdgeInsets.zero,
-                    itemCount: _controllers.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppSpace.sm),
-                    itemBuilder: (context, index) {
-                      final endTime = calculateScheduleEndTime(
-                        _controllers[index].text,
-                        _duration.round(),
-                      );
-                      return Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('自定义节次时间', style: text.titleLarge),
+                      const SizedBox(height: AppSpace.xs),
+                      Text('下课时间按每节课时长自动计算。', style: text.bodySmall),
+                      const SizedBox(height: AppSpace.lg),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          SizedBox(
-                            width: 44,
-                            child: Text(
-                              '第 ${index + 1} 节',
-                              style: Theme.of(context).textTheme.labelMedium,
+                          Expanded(
+                            child: Text('每节课时长', style: text.bodyMedium),
+                          ),
+                          Text(
+                            '${_duration.round()} 分钟',
+                            style: text.labelMedium?.copyWith(
+                              color: context.colors.accent,
                             ),
                           ),
-                          const SizedBox(width: AppSpace.sm),
-                          Expanded(
-                            child: TextFormField(
+                        ],
+                      ),
+                      SliderTheme(
+                        data: _scheduleSliderTheme(context, _durationDivisions),
+                        child: Slider(
+                          key: const ValueKey('schedule-duration-slider'),
+                          value: _duration,
+                          min: 20,
+                          max: 120,
+                          divisions: _durationDivisions,
+                          semanticFormatterCallback: (value) =>
+                              '每节课时长，${value.round()} 分钟',
+                          onChanged: (value) =>
+                              setState(() => _duration = value),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      for (final (index, controller) in _controllers.indexed)
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSpace.md),
+                          child: AppPeriodEditRow(
+                            period: index + 1,
+                            endTime: calculateScheduleEndTime(
+                              controller.text,
+                              _duration.round(),
+                            ),
+                            startField: TextFormField(
                               key: ValueKey('schedule-time-$index'),
-                              controller: _controllers[index],
+                              controller: controller,
+                              style: text.bodyMedium,
                               keyboardType: TextInputType.datetime,
                               textInputAction: index == _controllers.length - 1
                                   ? TextInputAction.done
@@ -1261,56 +1295,28 @@ class _TimeEditorSheetState extends State<_TimeEditorSheet> {
                                 LengthLimitingTextInputFormatter(5),
                               ],
                               decoration: const InputDecoration(
-                                labelText: '开始',
-                                hintText: '08:00',
-                                isDense: true,
+                                hintText: 'HH:mm',
                               ),
                               validator: _validateTime,
                               onChanged: (_) => setState(() {}),
                             ),
                           ),
-                          const SizedBox(width: AppSpace.md),
-                          SizedBox(
-                            width: 52,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '结束',
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color: context.colors.inkFaint,
-                                      ),
-                                ),
-                                Text(
-                                  endTime,
-                                  style: Theme.of(context).textTheme.labelMedium
-                                      ?.copyWith(
-                                        fontFeatures: const [
-                                          FontFeature.tabularFigures(),
-                                        ],
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+                        ),
+                      if (keyboard > 0) ...[
+                        const SizedBox(height: AppSpace.md),
+                        saveButton,
+                      ],
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpace.md),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  key: const ValueKey('schedule-time-save'),
-                  onPressed: _save,
-                  child: const Text('保存时间'),
-                ),
+            ),
+            if (keyboard == 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                child: saveButton,
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -1350,11 +1356,9 @@ class _SettingsGroup extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: AppSpace.sm),
           child: Text(title, style: Theme.of(context).textTheme.labelMedium),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-          ),
+        Material(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           clipBehavior: Clip.antiAlias,
           child: Column(children: children),
         ),
@@ -1414,13 +1418,12 @@ class _SliderSetting extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(description, style: text.bodySmall),
                 SliderTheme(
-                  data: SliderTheme.of(context).copyWith(trackHeight: 3),
+                  data: _scheduleSliderTheme(context, divisions),
                   child: Slider(
                     value: value,
                     min: minimum,
                     max: maximum,
                     divisions: divisions,
-                    label: valueLabel,
                     semanticFormatterCallback: (_) => '$title，$valueLabel',
                     onChanged: enabled ? onChanged : null,
                     onChangeEnd: enabled ? onChangeEnd : null,
@@ -1433,6 +1436,106 @@ class _SliderSetting extends StatelessWidget {
         const Divider(height: 1, indent: 16),
       ],
     );
+  }
+}
+
+SliderThemeData _scheduleSliderTheme(BuildContext context, int divisions) {
+  final colors = context.colors;
+  final railColor = Color.lerp(colors.surfaceMuted, colors.ink, 0.12)!;
+  return SliderTheme.of(context).copyWith(
+    trackHeight: 32,
+    activeTrackColor: colors.accent,
+    inactiveTrackColor: railColor,
+    disabledActiveTrackColor: Color.lerp(railColor, colors.accent, 0.32),
+    disabledInactiveTrackColor: railColor,
+    thumbColor: colors.onAccent,
+    disabledThumbColor: colors.inkFaint,
+    activeTickMarkColor: colors.onAccent.withValues(alpha: 0.48),
+    inactiveTickMarkColor: colors.ink.withValues(alpha: 0.26),
+    trackShape: _ScheduleSliderTrackShape(divisions),
+    thumbShape: const RoundSliderThumbShape(
+      enabledThumbRadius: 11,
+      elevation: 0,
+      pressedElevation: 0,
+    ),
+    tickMarkShape: SliderTickMarkShape.noTickMark,
+    overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
+    overlayColor: colors.accent.withValues(alpha: 0.12),
+    showValueIndicator: ShowValueIndicator.never,
+  );
+}
+
+class _ScheduleSliderTrackShape extends SliderTrackShape
+    with BaseSliderTrackShape {
+  const _ScheduleSliderTrackShape(this.divisions);
+
+  static const _tickMark = RoundSliderTickMarkShape(tickMarkRadius: 2.5);
+
+  final int divisions;
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset offset, {
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required Animation<double> enableAnimation,
+    required TextDirection textDirection,
+    required Offset thumbCenter,
+    Offset? secondaryOffset,
+    bool isDiscrete = false,
+    bool isEnabled = false,
+  }) {
+    // 刻度与滑钮共用行程，轨道再向两端延伸半个高度以包住滑钮。
+    final travel = getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+    final cap = travel.height / 2;
+    final radius = Radius.circular(cap);
+    final rail = Rect.fromLTRB(
+      travel.left - cap,
+      travel.top,
+      travel.right + cap,
+      travel.bottom,
+    );
+    final selected = textDirection == TextDirection.ltr
+        ? Rect.fromLTRB(rail.left, rail.top, thumbCenter.dx + cap, rail.bottom)
+        : Rect.fromLTRB(
+            thumbCenter.dx - cap,
+            rail.top,
+            rail.right,
+            rail.bottom,
+          );
+    context.canvas
+      ..drawRRect(
+        RRect.fromRectAndRadius(rail, radius),
+        Paint()..color = sliderTheme.inactiveTrackColor!,
+      )
+      ..drawRRect(
+        RRect.fromRectAndRadius(selected, radius),
+        Paint()
+          ..color = ColorTween(
+            begin: sliderTheme.disabledActiveTrackColor,
+            end: sliderTheme.activeTrackColor,
+          ).evaluate(enableAnimation)!,
+      );
+
+    for (var step = 0; step <= divisions; step++) {
+      _tickMark.paint(
+        context,
+        Offset(travel.left + travel.width * step / divisions, travel.center.dy),
+        parentBox: parentBox,
+        sliderTheme: sliderTheme,
+        enableAnimation: enableAnimation,
+        thumbCenter: thumbCenter,
+        isEnabled: isEnabled,
+        textDirection: textDirection,
+      );
+    }
   }
 }
 
@@ -1482,8 +1585,11 @@ class _SwitchSetting extends StatelessWidget {
           child: SwitchListTile(
             value: value,
             onChanged: onChanged,
-            title: Text(title),
-            subtitle: Text(description),
+            title: Text(title, style: Theme.of(context).textTheme.bodyMedium),
+            subtitle: Text(
+              description,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           ),
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 
 /// 所有可点击元素的基础：在自身底色上绘制原生水波纹（主题使用 InkSparkle），
 /// 并沿用 InkWell 的焦点、悬停、键盘激活与按钮语义。
@@ -31,9 +32,11 @@ class Pressable extends StatelessWidget {
     final transparent = color.a == 0;
     return Semantics(
       button: true,
+      enabled: onTap != null,
       selected: selected,
       label: semanticLabel,
       child: Material(
+        animationDuration: AppMotion.of(context, AppMotion.medium),
         type: transparent ? MaterialType.transparency : MaterialType.canvas,
         color: transparent ? null : color,
         borderRadius: transparent ? null : borderRadius,

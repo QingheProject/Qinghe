@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/utils/formatters.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
+import 'package:qinghe_app/app/widgets/app_expansion_icon.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/data/models/timetable.dart';
@@ -35,7 +38,7 @@ class MyCoursesCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpace.md),
             AppButton(
-              icon: Icons.upload_file_outlined,
+              icon: AppIcons.upload,
               label: '导入课表',
               tone: AppButtonTone.secondary,
               onPressed: () => Get.toNamed<void>(AppRoutes.timetableImport),
@@ -107,6 +110,7 @@ class MyCoursesCard extends StatelessWidget {
   ) {
     showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: AppMotion.style(context),
       isScrollControlled: true,
       showDragHandle: true,
       constraints: const BoxConstraints(maxWidth: 640),
@@ -129,7 +133,7 @@ class MyCoursesCard extends StatelessWidget {
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       tooltip: '关闭全部课程',
-                      icon: const Icon(Icons.close_rounded),
+                      icon: const Icon(AppIcons.close),
                     ),
                   ],
                 ),
@@ -141,6 +145,7 @@ class MyCoursesCard extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final group = courses[index];
                     return ExpansionTile(
+                      trailing: const AppExpansionIcon(),
                       tilePadding: EdgeInsets.zero,
                       shape: const Border(),
                       title: Text(group.first.name),
@@ -230,7 +235,7 @@ class _CourseRow extends StatelessWidget {
         contentPadding: EdgeInsets.zero,
         minLeadingWidth: 8,
         horizontalTitleGap: AppSpace.md,
-        leading: Icon(Icons.circle, size: 8, color: color),
+        leading: Icon(AppIcons.statusDot, size: 8, color: color),
         titleTextStyle: Theme.of(context).textTheme.bodyMedium,
         subtitleTextStyle: Theme.of(context).textTheme.bodySmall,
         title: Text(
@@ -239,7 +244,7 @@ class _CourseRow extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: details.isEmpty ? null : Text(details.join(' · ')),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        trailing: const Icon(AppIcons.chevronRight),
         onTap: () => showLessonSheet(context, lesson),
       );
     });

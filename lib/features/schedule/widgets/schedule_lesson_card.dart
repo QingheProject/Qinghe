@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
-import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/utils/formatters.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
@@ -14,6 +13,7 @@ class ScheduleLessonCard extends StatelessWidget {
     required this.colorScheme,
     required this.saturation,
     required this.backgroundOpacity,
+    required this.cornerRadius,
     required this.showBorder,
     required this.borderWidth,
     required this.showTopLine,
@@ -30,6 +30,7 @@ class ScheduleLessonCard extends StatelessWidget {
   final CourseColorScheme colorScheme;
   final double saturation;
   final double backgroundOpacity;
+  final double cornerRadius;
   final bool showBorder;
   final double borderWidth;
   final bool showTopLine;
@@ -51,10 +52,11 @@ class ScheduleLessonCard extends StatelessWidget {
       if (showLocation && lesson.location.isNotEmpty) lesson.location,
       if (showTeacher && lesson.teacher.isNotEmpty) lesson.teacher,
     ].join('\n');
-    final radius = BorderRadius.circular(AppRadius.sm);
+    final radius = BorderRadius.circular(cornerRadius);
 
     return Semantics(
       button: true,
+      onTap: onTap,
       label: [
         '${date.month}月${date.day}日',
         lesson.courseName,

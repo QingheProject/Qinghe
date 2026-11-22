@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/student_profile_controller.dart';
@@ -86,7 +87,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 style: Theme.of(context).textTheme.bodyMedium,
                 decoration: InputDecoration(
                   hintText: '搜索或填写学校名称',
-                  prefixIcon: const Icon(Icons.school_outlined, size: 20),
+                  prefixIcon: const Icon(AppIcons.school, size: 20),
                   prefixIconColor: context.colors.inkMuted,
                   counterText: '',
                 ),
@@ -102,7 +103,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 clipBehavior: Clip.antiAlias,
                 child: AppListRow(
-                  icon: Icons.school_outlined,
+                  icon: AppIcons.school,
                   title: '西南科技大学',
                   onTap: () => setState(() => _school.text = '西南科技大学'),
                 ),
@@ -118,7 +119,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 style: Theme.of(context).textTheme.bodyMedium,
                 decoration: InputDecoration(
                   hintText: '填写昵称',
-                  prefixIcon: const Icon(Icons.person_outline, size: 20),
+                  prefixIcon: const Icon(AppIcons.user, size: 20),
                   prefixIconColor: context.colors.inkMuted,
                   counterText: '',
                 ),

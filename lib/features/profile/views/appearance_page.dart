@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
 
@@ -77,6 +79,11 @@ class AppearancePage extends GetView<AppearanceController> {
                             value: AppAccentTone.rose,
                             label: '玫瑰',
                             preview: _AccentPreview(AppAccentTone.rose),
+                          ),
+                          _AppearanceOption(
+                            value: AppAccentTone.monochrome,
+                            label: '黑白',
+                            preview: _AccentPreview(AppAccentTone.monochrome),
                           ),
                         ],
                       ),
@@ -229,7 +236,7 @@ class _OptionCard extends StatelessWidget {
       color: colors.surface,
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
+        duration: AppMotion.of(context, AppMotion.medium),
         padding: const EdgeInsets.fromLTRB(8, 10, 8, 9),
         decoration: BoxDecoration(
           border: Border.all(
@@ -424,9 +431,11 @@ class _BarContentPreview extends StatelessWidget {
               children: [
                 if (showIcons)
                   Icon(
-                    index == 1
-                        ? Icons.calendar_view_week_rounded
-                        : Icons.circle_outlined,
+                    index == 0
+                        ? AppIcons.home
+                        : index == 1
+                        ? AppIcons.calendarFill
+                        : AppIcons.user,
                     size: 10,
                     color: index == 1 ? colors.accent : colors.inkFaint,
                   ),

@@ -27,6 +27,7 @@ class AppearanceController extends GetxService {
   static const _scheduleVerticalInsetKey = 'schedule_vertical_inset';
   static const _scheduleCardOpacityKey = 'schedule_card_opacity';
   static const _scheduleCourseSaturationKey = 'schedule_course_saturation';
+  static const _scheduleCardRadiusKey = 'schedule_card_radius';
   static const _scheduleBorderWidthKey = 'schedule_border_width';
   static const _scheduleShowBorderKey = 'schedule_show_border';
   static const _scheduleShowTopLineKey = 'schedule_show_top_line';
@@ -67,6 +68,7 @@ class AppearanceController extends GetxService {
   final scheduleVerticalInset = 2.0.obs;
   final scheduleCardOpacity = 1.0.obs;
   final scheduleCourseSaturation = 1.0.obs;
+  final scheduleCardRadius = 10.0.obs;
   final scheduleBorderWidth = 1.0.obs;
   final scheduleShowBorder = false.obs;
   final scheduleShowTopLine = true.obs;
@@ -150,6 +152,13 @@ class AppearanceController extends GetxService {
       fallback: 1,
       minimum: 0,
       maximum: 1,
+    );
+    scheduleCardRadius.value = _readDouble(
+      preferences,
+      _scheduleCardRadiusKey,
+      fallback: 10,
+      minimum: 0,
+      maximum: 20,
     );
     scheduleBorderWidth.value = _readDouble(
       preferences,
@@ -299,6 +308,19 @@ class AppearanceController extends GetxService {
     await preferences.setDouble(
       _scheduleCourseSaturationKey,
       scheduleCourseSaturation.value,
+    );
+  }
+
+  void previewScheduleCardRadius(double value) {
+    scheduleCardRadius.value = value.clamp(0, 20).toDouble();
+  }
+
+  Future<void> setScheduleCardRadius(double value) async {
+    previewScheduleCardRadius(value);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setDouble(
+      _scheduleCardRadiusKey,
+      scheduleCardRadius.value,
     );
   }
 

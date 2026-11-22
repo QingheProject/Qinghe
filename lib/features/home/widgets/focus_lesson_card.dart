@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
@@ -123,14 +124,14 @@ class _LessonCard extends StatelessWidget {
                     runSpacing: 6,
                     children: [
                       _IconText(
-                        icon: Icons.schedule_rounded,
+                        icon: AppIcons.clock,
                         label:
                             '${formatClock(lesson.startMinute)} – ${formatClock(lesson.endMinute)}',
                         color: soft,
                       ),
                       if (lesson.location.isNotEmpty)
                         _IconText(
-                          icon: Icons.place_outlined,
+                          icon: AppIcons.location,
                           label: lesson.location,
                           color: soft,
                         ),
@@ -307,7 +308,7 @@ class _RestCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(
-              done ? Icons.check_rounded : Icons.wb_sunny_outlined,
+              done ? AppIcons.check : AppIcons.sun,
               color: colors.accent,
             ),
           ),

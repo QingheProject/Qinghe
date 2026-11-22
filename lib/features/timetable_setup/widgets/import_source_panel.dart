@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
@@ -32,14 +33,14 @@ class ImportSourcePanel extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = context.colors;
     final csv = _ImportChoice(
-      icon: Icons.table_chart_outlined,
+      icon: AppIcons.table,
       title: 'CSV 模板',
       description: '表格课表',
       selected: fileType == TimetableFileType.csv,
       onTap: onSelect == null ? null : () => onSelect!(TimetableFileType.csv),
     );
     final json = _ImportChoice(
-      icon: Icons.data_object_rounded,
+      icon: AppIcons.code,
       title: 'JSON 文件',
       description: '支持学期配置',
       selected: fileType == TimetableFileType.json,
@@ -83,13 +84,13 @@ class ImportSourcePanel extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: onCopyTemplate,
-              icon: const Icon(Icons.content_copy_rounded, size: 16),
+              icon: const Icon(AppIcons.copy, size: 16),
               label: const Text('复制 CSV 模板'),
             ),
           ),
           const Divider(height: 1),
           AppListRow(
-            icon: Icons.school_outlined,
+            icon: AppIcons.school,
             title: '教务系统',
             subtitle: school.isEmpty ? '请先选择学校' : '$school · 暂未适配',
             onTap: onSchool,
@@ -103,10 +104,7 @@ class ImportSourcePanel extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 child: ListTile(
                   dense: true,
-                  leading: Icon(
-                    Icons.check_circle_outline,
-                    color: colors.accent,
-                  ),
+                  leading: Icon(AppIcons.checkCircle, color: colors.accent),
                   title: Text(
                     '${fileType!.name.toUpperCase()} · 已读取 $ruleCount 条安排',
                     style: text.bodyMedium,
@@ -114,7 +112,7 @@ class ImportSourcePanel extends StatelessWidget {
                   trailing: IconButton(
                     onPressed: onClear,
                     tooltip: '移除待导入文件',
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(AppIcons.close),
                   ),
                 ),
               ),
@@ -161,7 +159,7 @@ class _ImportChoice extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              selected ? Icons.check_rounded : icon,
+              selected ? AppIcons.check : icon,
               color: selected ? colors.accent : colors.inkMuted,
               size: 22,
             ),

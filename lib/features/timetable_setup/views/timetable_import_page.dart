@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/app_session.dart';
@@ -290,7 +291,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
                   child: DropdownButtonFormField<String>(
                     isExpanded: true,
                     style: text.bodyMedium,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                    icon: const Icon(AppIcons.chevronDown),
                     initialValue: _target?.id ?? _newSemester,
                     items: [
                       for (final timetable in _repository.timetables)
@@ -325,7 +326,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
                     onPressed: _busy
                         ? null
                         : () => setState(() => _resetFields(fileConfig)),
-                    icon: const Icon(Icons.event_available_outlined),
+                    icon: const Icon(AppIcons.calendarCheck),
                     label: const Text('应用文件中的学期配置'),
                   ),
                 ),
@@ -392,7 +393,7 @@ class _ImportNotice extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.error_outline_rounded, color: tint, size: 18),
+            Icon(AppIcons.error, color: tint, size: 18),
             const SizedBox(width: AppSpace.sm),
             Expanded(child: Text(message, style: theme.textTheme.bodyMedium)),
           ],

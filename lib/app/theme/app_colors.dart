@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-enum AppAccentTone { qinghe, ocean, violet, amber, rose }
+enum AppAccentTone { qinghe, ocean, violet, amber, rose, monochrome }
 
-enum CourseColorScheme { qinghe, ocean, sunset, candy, monochrome }
+enum CourseColorScheme { qinghe, ocean, sunset, candy }
 
 /// 青禾的语义色板。页面只使用这里的语义名称，不直接写死颜色值。
 @immutable
@@ -94,6 +94,10 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: const Color(0xFFB64D69),
       accentSoft: const Color(0xFFF4DDE4),
     ),
+    AppAccentTone.monochrome => light.copyWith(
+      accent: const Color(0xFF242424),
+      accentSoft: const Color(0xFFE5E5E5),
+    ),
   };
 
   static AppColors darkFor(AppAccentTone tone) => switch (tone) {
@@ -117,6 +121,11 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: const Color(0xFFE0879F),
       accentSoft: const Color(0xFF3B2029),
       onAccent: const Color(0xFF200A11),
+    ),
+    AppAccentTone.monochrome => dark.copyWith(
+      accent: const Color(0xFFE6E6E6),
+      accentSoft: const Color(0xFF303030),
+      onAccent: const Color(0xFF151515),
     ),
   };
 
@@ -216,16 +225,6 @@ abstract final class CoursePalette {
       Color(0xFF7FA22E),
       Color(0xFFD55FC2),
       Color(0xFF5B5DE0),
-    ],
-    CourseColorScheme.monochrome: [
-      Color(0xFF171717),
-      Color(0xFF343434),
-      Color(0xFF505050),
-      Color(0xFF6B6B6B),
-      Color(0xFF858585),
-      Color(0xFF9E9E9E),
-      Color(0xFFB8B8B8),
-      Color(0xFFD0D0D0),
     ],
   };
 

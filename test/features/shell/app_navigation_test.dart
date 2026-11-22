@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qinghe_app/app/theme/app_theme.dart';
 import 'package:qinghe_app/features/shell/widgets/app_navigation.dart';
@@ -39,9 +40,9 @@ void main() {
     expect(find.byKey(const ValueKey('nav-profile')), findsOneWidget);
 
     // 选中项使用实心图标，未选中项保持线性图标。
-    expect(find.byIcon(Icons.calendar_view_week_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.home_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.home_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.calendarFill), findsOneWidget);
+    expect(find.byIcon(AppIcons.home), findsOneWidget);
+    expect(find.byIcon(AppIcons.homeFill), findsNothing);
   });
 
   testWidgets('点击未选中入口回调索引，点击当前入口不重复回调', (tester) async {
@@ -93,7 +94,7 @@ void main() {
 
     // 图标与文字都落在选中块内部。
     for (final finder in [
-      find.byIcon(Icons.calendar_view_week_rounded),
+      find.byIcon(AppIcons.calendarFill),
       find.text('课表'),
     ]) {
       final content = tester.getRect(finder);

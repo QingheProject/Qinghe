@@ -70,6 +70,7 @@ class SchedulePage extends GetView<ScheduleController> {
                       cardInset: appearance.scheduleCardInset.value,
                       verticalInset: appearance.scheduleVerticalInset.value,
                       cardOpacity: appearance.scheduleCardOpacity.value,
+                      cardRadius: appearance.scheduleCardRadius.value,
                       showBorder: appearance.scheduleShowBorder.value,
                       borderWidth: appearance.scheduleBorderWidth.value,
                       showTopLine: appearance.scheduleShowTopLine.value,
@@ -255,6 +256,7 @@ class _WeekGrid extends StatelessWidget {
     required this.cardInset,
     required this.verticalInset,
     required this.cardOpacity,
+    required this.cardRadius,
     required this.showBorder,
     required this.borderWidth,
     required this.showTopLine,
@@ -284,6 +286,7 @@ class _WeekGrid extends StatelessWidget {
   final double cardInset;
   final double verticalInset;
   final double cardOpacity;
+  final double cardRadius;
   final bool showBorder;
   final double borderWidth;
   final bool showTopLine;
@@ -358,12 +361,17 @@ class _WeekGrid extends StatelessWidget {
                   ),
                 ),
               for (var dayIndex = 0; dayIndex < days.length; dayIndex++)
-                for (final lesson in lessonsOn(days[dayIndex]))
+                for (final (lesson, lane, laneCount) in _layoutDay(
+                  lessonsOn(days[dayIndex]),
+                ))
                   Positioned(
                     left:
-                        timeRailWidth + dayIndex * dayWidth + horizontalOffset,
+                        timeRailWidth +
+                        dayIndex * dayWidth +
+                        horizontalOffset +
+                        lane * lessonWidth / laneCount,
                     top: (lesson.startPeriod - 1) * rowHeight + verticalInset,
-                    width: lessonWidth,
+                    width: lessonWidth / laneCount,
                     height:
                         (lesson.endPeriod - lesson.startPeriod + 1) *
                             rowHeight -
@@ -371,10 +379,11 @@ class _WeekGrid extends StatelessWidget {
                     child: ScheduleLessonCard(
                       lesson: lesson,
                       date: days[dayIndex],
-                      compact: lessonWidth < 62,
+                      compact: lessonWidth / laneCount < 62,
                       colorScheme: colorScheme,
                       saturation: saturation,
                       backgroundOpacity: cardOpacity,
+                      cornerRadius: cardRadius,
                       showBorder: showBorder,
                       borderWidth: borderWidth,
                       showTopLine: showTopLine,
@@ -434,6 +443,38 @@ class _WeekGrid extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+/// 同一天时间重叠的课程并排展示，避免后绘制的课程盖住前一门。
+Iterable<(LessonOccurrence, int, int)> _layoutDay(
+  List<LessonOccurrence> lessons,
+) sync* {
+  final ordered = lessons.toList()
+    ..sort((left, right) => left.startPeriod.compareTo(right.startPeriod));
+  final group = <(LessonOccurrence, int)>[];
+  final laneEnds = <int>[];
+  var groupEnd = 0;
+  for (final lesson in ordered) {
+    if (lesson.startPeriod > groupEnd && group.isNotEmpty) {
+      for (final (course, lane) in group) {
+        yield (course, lane, laneEnds.length);
+      }
+      group.clear();
+      laneEnds.clear();
+    }
+    final lane = laneEnds.indexWhere((end) => end < lesson.startPeriod);
+    if (lane == -1) {
+      group.add((lesson, laneEnds.length));
+      laneEnds.add(lesson.endPeriod);
+    } else {
+      group.add((lesson, lane));
+      laneEnds[lane] = lesson.endPeriod;
+    }
+    if (lesson.endPeriod > groupEnd) groupEnd = lesson.endPeriod;
+  }
+  for (final (course, lane) in group) {
+    yield (course, lane, laneEnds.length);
   }
 }
 

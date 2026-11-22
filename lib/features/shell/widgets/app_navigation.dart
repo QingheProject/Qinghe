@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
@@ -18,20 +19,20 @@ typedef _Destination = ({
 /// 导航顺序固定为首页、课表、我的，课表居中。
 const _destinations = <_Destination>[
   (
-    icon: Icons.home_outlined,
-    activeIcon: Icons.home_rounded,
+    icon: AppIcons.home,
+    activeIcon: AppIcons.homeFill,
     label: '首页',
     key: 'nav-home',
   ),
   (
-    icon: Icons.calendar_view_week_outlined,
-    activeIcon: Icons.calendar_view_week_rounded,
+    icon: AppIcons.calendar,
+    activeIcon: AppIcons.calendarFill,
     label: '课表',
     key: 'nav-schedule',
   ),
   (
-    icon: Icons.person_outline_rounded,
-    activeIcon: Icons.person_rounded,
+    icon: AppIcons.user,
+    activeIcon: AppIcons.userFill,
     label: '我的',
     key: 'nav-profile',
   ),

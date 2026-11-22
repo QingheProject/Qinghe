@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/utils/formatters.dart';
 import 'package:qinghe_app/app/widgets/app_field_label.dart';
+import 'package:qinghe_app/app/widgets/app_expansion_icon.dart';
 import 'package:qinghe_app/app/widgets/app_period_edit_row.dart';
 import 'package:qinghe_app/data/models/semester_config.dart';
 
@@ -78,6 +80,8 @@ class _SemesterFieldsState extends State<SemesterFields> {
     final last = DateTime(2200, 12, 31);
     final day = await showDatePicker(
       context: context,
+      switchToInputEntryModeIcon: const Icon(AppIcons.edit),
+      switchToCalendarEntryModeIcon: const Icon(AppIcons.calendar),
       initialDate:
           selected != null &&
               selected.weekday == DateTime.monday &&
@@ -131,7 +135,7 @@ class _SemesterFieldsState extends State<SemesterFields> {
           suffixIcon: IconButton(
             onPressed: _pickDate,
             tooltip: '选择日期',
-            icon: const Icon(Icons.calendar_today_outlined),
+            icon: const Icon(AppIcons.calendar),
           ),
           helperText: monday != null && monday.weekday == DateTime.monday
               ? '第 1 周：${monday.month}月${monday.day}日 – ${sunday!.month}月${sunday.day}日'
@@ -178,12 +182,13 @@ class _SemesterFieldsState extends State<SemesterFields> {
         ),
         const SizedBox(height: AppSpace.lg),
         ExpansionTile(
+          trailing: const AppExpansionIcon(),
           backgroundColor: colors.surface,
           collapsedBackgroundColor: colors.surfaceMuted,
           shape: sectionShape,
           collapsedShape: sectionShape,
           tilePadding: const EdgeInsets.symmetric(horizontal: AppSpace.md),
-          leading: Icon(Icons.schedule_outlined, color: colors.accent),
+          leading: Icon(AppIcons.clock, color: colors.accent),
           title: Text('节次时间', style: text.bodyMedium),
           subtitle: Text(
             '${_starts.length} 节 · 每节 ${_duration.text} 分钟',
@@ -233,7 +238,7 @@ class _SemesterFieldsState extends State<SemesterFields> {
                           _starts.add(TextEditingController());
                           _changed();
                         },
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(AppIcons.add),
                   label: const Text('添加节次'),
                 ),
               ],

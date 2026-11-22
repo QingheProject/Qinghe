@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
@@ -482,12 +483,9 @@ class ReminderIllustration extends StatelessWidget {
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _Chip(icon: Icons.cloud_off_rounded, label: '离线可用'),
+                        _Chip(icon: AppIcons.offline, label: '离线可用'),
                         SizedBox(width: 8),
-                        _Chip(
-                          icon: Icons.notifications_none_rounded,
-                          label: '提前提醒',
-                        ),
+                        _Chip(icon: AppIcons.notifications, label: '提前提醒'),
                       ],
                     ),
                   ),

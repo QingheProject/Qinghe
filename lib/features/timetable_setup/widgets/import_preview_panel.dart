@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+import 'package:qinghe_app/app/widgets/app_expansion_icon.dart';
 import 'package:qinghe_app/app/utils/formatters.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/data/import/timetable_import_preview.dart';
@@ -53,6 +54,7 @@ class ImportPreviewPanel extends StatelessWidget {
             Text('课程安排与当前课表一致。', style: text.bodySmall),
           if (preview.added.isNotEmpty)
             ExpansionTile(
+              trailing: const AppExpansionIcon(),
               tilePadding: EdgeInsets.zero,
               shape: const Border(),
               title: const Text('查看新增安排'),
@@ -67,6 +69,7 @@ class ImportPreviewPanel extends StatelessWidget {
             ),
           if (preview.updated.isNotEmpty)
             ExpansionTile(
+              trailing: const AppExpansionIcon(),
               tilePadding: EdgeInsets.zero,
               shape: const Border(),
               title: const Text('查看更新前后'),

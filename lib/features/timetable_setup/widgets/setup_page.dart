@@ -30,7 +30,8 @@ class SetupPage extends StatelessWidget {
       backgroundColor: colors.canvas,
       appBar: AppBar(title: Text(title), centerTitle: true, actions: actions),
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
             child: SingleChildScrollView(

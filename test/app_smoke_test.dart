@@ -11,6 +11,7 @@ import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/data/import/timetable_import.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/features/onboarding/controllers/onboarding_controller.dart';
+import 'package:qinghe_app/features/schedule/widgets/schedule_lesson_card.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
 import 'package:qinghe_app/features/timetable_setup/views/timetable_import_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -268,6 +269,37 @@ void main() {
     expect(tester.getTopLeft(grid).dy, lessThan(initialGridTop));
   });
 
+  testWidgets('窄屏导入选项换行，键盘打开后仍能滚动到保存', (tester) async {
+    tester.view
+      ..physicalSize = const Size(320, 640)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('onboarding_completed', true);
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    Get.to<void>(() => const TimetableImportPage());
+    await tester.pumpAndSettle();
+
+    final csv = find.text('CSV 模板');
+    final json = find.text('JSON 文件');
+    expect(tester.getTopLeft(json).dy, greaterThan(tester.getTopLeft(csv).dy));
+
+    final field = find.byKey(const ValueKey('semester-name'));
+    await tester.ensureVisible(field);
+    await tester.enterText(field, '示例学期');
+    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+    await tester.pumpAndSettle();
+    final save = find.text('保存学期配置');
+    await tester.scrollUntilVisible(
+      save,
+      180,
+      scrollable: _scrollableIn('setup-scroll'),
+    );
+    expect(save.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('外观设置可以切换主题、底栏形态和内容', (tester) async {
     await tester.pumpWidget(const QingheApp());
     await tester.pumpAndSettle();
@@ -304,6 +336,18 @@ void main() {
       AppColors.darkFor(AppAccentTone.violet).canvas,
     );
     expect(appliedColors.canvas, AppColors.dark.canvas);
+
+    await tester.tap(find.text('黑白'));
+    await tester.pumpAndSettle();
+    expect(appearance.accentTone.value, AppAccentTone.monochrome);
+    final monochromeColors = Theme.of(
+      tester.element(find.text('主题配色')),
+    ).extension<AppColors>()!;
+    expect(
+      monochromeColors.accent,
+      AppColors.darkFor(AppAccentTone.monochrome).accent,
+    );
+    expect(monochromeColors.canvas, AppColors.dark.canvas);
 
     final fixedBarOption = find.text('贴底');
     await tester.ensureVisible(fixedBarOption);
@@ -353,7 +397,7 @@ void main() {
     expect(find.text('选择一套课程颜色'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('course-palette-monochrome')),
-      findsOneWidget,
+      findsNothing,
     );
     await tester.tap(find.byKey(const ValueKey('course-palette-ocean')));
     await tester.pumpAndSettle();
@@ -477,6 +521,57 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(appearance.scheduleCourseSaturation.value, lessThan(1));
+
+    final radiusSetting = find.byKey(const ValueKey('schedule-radius-slider'));
+    await tester.ensureVisible(radiusSetting);
+    await tester.pumpAndSettle();
+    final radiusSlider = find.descendant(
+      of: radiusSetting,
+      matching: find.byType(Slider),
+    );
+    await tester.drag(radiusSlider, const Offset(120, 0));
+    await tester.pumpAndSettle();
+    expect(appearance.scheduleCardRadius.value, greaterThan(10));
+    expect(
+      tester.widget<ScheduleLessonCard>(previewCard).cornerRadius,
+      appearance.scheduleCardRadius.value,
+    );
+
+    final sliderBounds = tester.getRect(radiusSlider);
+    expect(sliderBounds.height, greaterThanOrEqualTo(48));
+    final sliderColors = tester.element(radiusSlider).colors;
+    final rail = Rect.fromLTWH(
+      8,
+      (sliderBounds.height - 32) / 2,
+      sliderBounds.width - 16,
+      32,
+    );
+    for (final value in [0.0, 20.0]) {
+      final thumbX = value == 0 ? 24.0 : sliderBounds.width - 24;
+      await tester.tapAt(
+        Offset(sliderBounds.left + thumbX, sliderBounds.center.dy),
+      );
+      await tester.pumpAndSettle();
+      expect(appearance.scheduleCardRadius.value, value);
+      final fill = Rect.fromLTRB(rail.left, rail.top, thumbX + 16, rail.bottom);
+      final expectedPaint = paints
+        ..rrect(rrect: RRect.fromRectAndRadius(rail, const Radius.circular(16)))
+        ..rrect(
+          rrect: RRect.fromRectAndRadius(fill, const Radius.circular(16)),
+          color: sliderColors.accent,
+        );
+      for (var step = 0; step <= 10; step++) {
+        expectedPaint.circle(
+          x: 24 + (sliderBounds.width - 48) * step / 10,
+          radius: 2.5,
+        );
+      }
+      expect(
+        radiusSlider,
+        expectedPaint
+          ..circle(x: thumbX, radius: 11, color: sliderColors.onAccent),
+      );
+    }
 
     final borderSwitch = find.byKey(const ValueKey('schedule-border-switch'));
     await tester.ensureVisible(borderSwitch);

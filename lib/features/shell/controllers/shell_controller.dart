@@ -10,10 +10,14 @@ class ShellController extends GetxController {
   int? _targetIndex;
 
   /// 点击导航：用可中断的横向动画切换页面，并忽略动画期间的重复点击。
-  Future<void> selectSection(int index) async {
+  Future<void> selectSection(int index, {bool animate = true}) async {
     if (currentIndex.value == index || _targetIndex != null) return;
     currentIndex.value = index;
     if (!pageController.hasClients) return;
+    if (!animate) {
+      pageController.jumpToPage(index);
+      return;
+    }
 
     _targetIndex = index;
     try {

@@ -3,9 +3,10 @@ import 'package:flutter/widgets.dart';
 /// 动效参数。所有动画都由可中断的控制器或隐式动画驱动，
 /// 新的状态到来时直接从当前值继续，不排队播放过时的动画。
 abstract final class AppMotion {
-  static const fast = Duration(milliseconds: 160);
   static const medium = Duration(milliseconds: 280);
-  static const slow = Duration(milliseconds: 520);
+  // 各档统一为常规速度，既有调用共用同一时长。
+  static const fast = medium;
+  static const slow = medium;
 
   /// 进场与位移使用的强调曲线：快速启动、柔和收尾。
   static const emphasized = Cubic(0.2, 0, 0, 1);
@@ -20,6 +21,12 @@ abstract final class AppMotion {
   /// 减少动画时把时长压缩为极短的即时反馈。
   static Duration of(BuildContext context, Duration duration) =>
       reduced(context) ? const Duration(milliseconds: 1) : duration;
+
+  /// 抽屉的进入和退出共用常规时长，并遵循系统减少动画设置。
+  static AnimationStyle style(BuildContext context) => AnimationStyle(
+    duration: of(context, medium),
+    reverseDuration: of(context, medium),
+  );
 
   /// 把整体进度 [t] 映射到 [begin, end] 区间内的局部进度。
   static double interval(

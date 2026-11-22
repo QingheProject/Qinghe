@@ -46,23 +46,26 @@ class AppButton extends StatelessWidget {
           Icon(icon, size: 18, color: foreground),
           const SizedBox(width: AppSpace.sm),
         ],
-        AnimatedSwitcher(
-          duration: AppMotion.of(context, AppMotion.fast),
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: animation.drive(
-                Tween(begin: const Offset(0, 0.35), end: Offset.zero),
+        Flexible(
+          child: AnimatedSwitcher(
+            duration: AppMotion.of(context, AppMotion.fast),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: animation.drive(
+                  Tween(begin: const Offset(0, 0.35), end: Offset.zero),
+                ),
+                child: child,
               ),
-              child: child,
             ),
-          ),
-          child: Text(
-            label,
-            key: ValueKey(label),
-            style: (dense ? text.labelMedium : text.labelLarge)?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w600,
+            child: Text(
+              label,
+              key: ValueKey(label),
+              textAlign: TextAlign.center,
+              style: (dense ? text.labelMedium : text.labelLarge)?.copyWith(
+                color: foreground,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
@@ -81,10 +84,13 @@ class AppButton extends StatelessWidget {
         color: background,
         splashColor: foreground.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(AppRadius.md),
-        child: SizedBox(
-          height: dense ? 40 : 52,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: dense ? 44 : 52),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: dense ? 14 : 22),
+            padding: EdgeInsets.symmetric(
+              horizontal: dense ? 14 : 22,
+              vertical: 12,
+            ),
             child: AnimatedSize(
               duration: duration,
               curve: AppMotion.emphasized,

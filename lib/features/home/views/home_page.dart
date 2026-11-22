@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
@@ -95,7 +96,7 @@ class _HomePageState extends State<HomePage>
                 ),
               ),
               IconAction(
-                icon: Icons.calendar_month_outlined,
+                icon: AppIcons.calendar,
                 label: '打开日历',
                 onTap: () => _comingSoon('日历'),
               ),

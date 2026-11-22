@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/utils/formatters.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
@@ -9,7 +11,10 @@ import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 Future<void> showLessonSheet(BuildContext context, LessonOccurrence lesson) {
   return showModalBottomSheet<void>(
     context: context,
-    builder: (context) => _LessonSheet(lesson: lesson),
+    sheetAnimationStyle: AppMotion.style(context),
+    isScrollControlled: true,
+    builder: (context) =>
+        SingleChildScrollView(child: _LessonSheet(lesson: lesson)),
   );
 }
 
@@ -60,25 +65,25 @@ class _LessonSheet extends StatelessWidget {
             ),
             const SizedBox(height: AppSpace.xl),
             _DetailRow(
-              icon: Icons.schedule_rounded,
+              icon: AppIcons.clock,
               label: '时间',
               value:
                   '${formatClock(lesson.startMinute)} – ${formatClock(lesson.endMinute)}',
             ),
             _DetailRow(
-              icon: Icons.view_agenda_outlined,
+              icon: AppIcons.rows,
               label: '节次',
               value: formatPeriods(lesson.startPeriod, lesson.endPeriod),
             ),
             if (lesson.location.isNotEmpty)
               _DetailRow(
-                icon: Icons.place_outlined,
+                icon: AppIcons.location,
                 label: '地点',
                 value: lesson.location,
               ),
             if (lesson.teacher.isNotEmpty)
               _DetailRow(
-                icon: Icons.person_outline_rounded,
+                icon: AppIcons.user,
                 label: '教师',
                 value: lesson.teacher,
               ),

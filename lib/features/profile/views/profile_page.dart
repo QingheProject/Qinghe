@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/student_profile_controller.dart';
@@ -48,14 +49,14 @@ class ProfilePage extends StatelessWidget {
                 title: '课表',
                 children: [
                   AppListRow(
-                    icon: Icons.view_week_outlined,
+                    icon: AppIcons.columns,
                     title: '课表外观',
                     subtitle: '尺寸、信息与间距',
                     onTap: () =>
                         Get.toNamed<void>(AppRoutes.scheduleAppearance),
                   ),
                   AppListRow(
-                    icon: Icons.date_range_outlined,
+                    icon: AppIcons.calendar,
                     title: '课表导入与配置',
                     subtitle: '学期、节次和导入来源',
                     onTap: () => Get.toNamed<void>(AppRoutes.timetableImport),
@@ -67,12 +68,12 @@ class ProfilePage extends StatelessWidget {
                 title: '偏好',
                 children: [
                   AppListRow(
-                    icon: Icons.palette_outlined,
+                    icon: AppIcons.palette,
                     title: '外观与布局',
                     onTap: () => Get.toNamed<void>(AppRoutes.appearance),
                   ),
                   AppListRow(
-                    icon: Icons.notifications_none_rounded,
+                    icon: AppIcons.notifications,
                     title: '课程提醒',
                     trailing: soonTag,
                     onTap: () => soon('课程提醒'),
@@ -84,12 +85,12 @@ class ProfilePage extends StatelessWidget {
                 title: '其他',
                 children: [
                   AppListRow(
-                    icon: Icons.auto_awesome_outlined,
+                    icon: AppIcons.sparkle,
                     title: '重新查看引导',
                     onTap: () => Get.toNamed<void>(AppRoutes.onboarding),
                   ),
                   AppListRow(
-                    icon: Icons.info_outline_rounded,
+                    icon: AppIcons.info,
                     title: '关于青禾',
                     subtitle: '离线大学课表 · 0.1.0',
                     onTap: () => showAppToast(context, '青禾 0.1.0'),
@@ -130,7 +131,7 @@ class _ProfileCard extends StatelessWidget {
                 color: colors.accentSoft,
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              child: Icon(Icons.person_outline, color: colors.accent),
+              child: Icon(AppIcons.user, color: colors.accent),
             ),
             const SizedBox(width: AppSpace.md),
             Expanded(
@@ -155,7 +156,7 @@ class _ProfileCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpace.sm),
-            Icon(Icons.edit_outlined, color: colors.inkMuted, size: 19),
+            Icon(AppIcons.edit, color: colors.inkMuted, size: 19),
           ],
         ),
       ),

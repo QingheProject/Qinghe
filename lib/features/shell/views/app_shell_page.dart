@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/features/home/views/home_page.dart';
 import 'package:qinghe_app/features/profile/views/profile_page.dart';
 import 'package:qinghe_app/features/schedule/views/schedule_page.dart';
@@ -35,7 +36,10 @@ class AppShellPage extends GetView<ShellController> {
                 if (useSideNavigation)
                   AppSideRail(
                     selectedIndex: index,
-                    onSelected: (value) => controller.selectSection(value),
+                    onSelected: (value) => controller.selectSection(
+                      value,
+                      animate: !AppMotion.reduced(context),
+                    ),
                   )
                 else
                   const SizedBox.shrink(),
@@ -56,7 +60,10 @@ class AppShellPage extends GetView<ShellController> {
                     selectedIndex: index,
                     floating: floating,
                     contentStyle: contentStyle,
-                    onSelected: (value) => controller.selectSection(value),
+                    onSelected: (value) => controller.selectSection(
+                      value,
+                      animate: !AppMotion.reduced(context),
+                    ),
                   ),
           );
         });
