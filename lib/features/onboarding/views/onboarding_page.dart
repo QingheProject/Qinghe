@@ -108,7 +108,7 @@ class _TopBar extends StatelessWidget {
                     label: '跳过',
                     tone: AppButtonTone.quiet,
                     dense: true,
-                    onPressed: controller.finish,
+                    onPressed: controller.skip,
                   ),
                 ),
               );

@@ -77,6 +77,48 @@ class AppSectionHeader extends StatelessWidget {
   }
 }
 
+/// 表单、摘要和操作区共用的圆角表面。
+class AppPanel extends StatelessWidget {
+  const AppPanel({
+    required this.child,
+    this.padding = const EdgeInsets.all(AppSpace.lg),
+    super.key,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: context.colors.surface,
+    borderRadius: BorderRadius.circular(AppRadius.xl),
+    clipBehavior: Clip.antiAlias,
+    child: Padding(padding: padding, child: child),
+  );
+}
+
+class AppMetric extends StatelessWidget {
+  const AppMetric({required this.label, required this.value, super.key});
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return MergeSemantics(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: text.labelMedium),
+          Text('$value', style: text.headlineSmall),
+        ],
+      ),
+    );
+  }
+}
+
 /// 说明性的空状态面板。
 class AppEmptyState extends StatelessWidget {
   const AppEmptyState({

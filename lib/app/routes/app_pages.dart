@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
+import 'package:qinghe_app/features/timetable_setup/views/student_profile_page.dart';
+import 'package:qinghe_app/features/timetable_setup/views/timetable_import_page.dart';
 import 'package:qinghe_app/features/onboarding/bindings/onboarding_binding.dart';
 import 'package:qinghe_app/features/onboarding/views/onboarding_page.dart';
 import 'package:qinghe_app/features/profile/views/appearance_page.dart';
@@ -41,6 +43,18 @@ abstract final class AppPages {
     GetPage<void>(
       name: AppRoutes.scheduleAppearance,
       page: ScheduleAppearancePage.new,
+      transition: Transition.rightToLeft,
+      transitionDuration: const Duration(milliseconds: 180),
+    ),
+    GetPage<void>(
+      name: AppRoutes.studentProfile,
+      page: () => StudentProfilePage(firstRun: Get.arguments == true),
+      transition: Transition.rightToLeft,
+      transitionDuration: const Duration(milliseconds: 180),
+    ),
+    GetPage<void>(
+      name: AppRoutes.timetableImport,
+      page: () => TimetableImportPage(firstRun: Get.arguments == true),
       transition: Transition.rightToLeft,
       transitionDuration: const Duration(milliseconds: 180),
     ),

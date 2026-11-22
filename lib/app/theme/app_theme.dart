@@ -25,6 +25,13 @@ abstract final class AppTheme {
       onSurface: colors.ink,
     );
     final text = _textTheme(colors);
+    const fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+      borderSide: BorderSide.none,
+    );
+    final fieldErrorColor = brightness == Brightness.dark
+        ? const Color(0xFFFF9D94)
+        : scheme.error;
 
     return ThemeData(
       useMaterial3: true,
@@ -33,6 +40,34 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: colors.canvas,
       canvasColor: colors.canvas,
       textTheme: text,
+      inputDecorationTheme: InputDecorationThemeData(
+        filled: true,
+        fillColor: colors.surfaceMuted,
+        border: fieldBorder,
+        enabledBorder: fieldBorder,
+        disabledBorder: fieldBorder,
+        focusedBorder: fieldBorder.copyWith(
+          borderSide: BorderSide(color: colors.accent, width: 1.5),
+        ),
+        errorBorder: fieldBorder.copyWith(
+          borderSide: BorderSide(color: fieldErrorColor),
+        ),
+        focusedErrorBorder: fieldBorder.copyWith(
+          borderSide: BorderSide(color: fieldErrorColor, width: 1.5),
+        ),
+        constraints: const BoxConstraints(minHeight: 48),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpace.lg,
+          vertical: AppSpace.md,
+        ),
+        hintStyle: text.bodyMedium?.copyWith(color: colors.inkMuted),
+        labelStyle: text.labelMedium,
+        helperStyle: text.bodySmall,
+        helperMaxLines: 2,
+        errorStyle: text.bodySmall?.copyWith(color: fieldErrorColor),
+        errorMaxLines: 3,
+        suffixIconColor: colors.inkMuted,
+      ),
       splashFactory: InkSparkle.splashFactory,
       splashColor: colors.ink.withValues(alpha: 0.08),
       highlightColor: colors.ink.withValues(alpha: 0.04),

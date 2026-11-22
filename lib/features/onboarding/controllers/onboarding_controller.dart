@@ -39,6 +39,21 @@ class OnboardingController extends GetxController {
   Future<void> finish() async {
     if (_finishing) return;
     _finishing = true;
+    if (_session.onboardingCompleted.value) {
+      Get.back<void>();
+      return;
+    }
+    await _session.startSetup();
+    Get.offAllNamed<void>(AppRoutes.studentProfile, arguments: true);
+  }
+
+  Future<void> skip() async {
+    if (_finishing) return;
+    _finishing = true;
+    if (_session.onboardingCompleted.value) {
+      Get.back<void>();
+      return;
+    }
     await _session.completeOnboarding();
     Get.offAllNamed<void>(AppRoutes.shell);
   }

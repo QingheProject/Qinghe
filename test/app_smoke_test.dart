@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/app.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
+import 'package:qinghe_app/app/student_profile_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
@@ -47,6 +48,34 @@ void main() {
     }
     await tester.tap(find.text('开始使用'));
     await tester.pumpAndSettle();
+    expect(find.text('首次设置 · 1 / 2'), findsOneWidget);
+    final school = find.byKey(const ValueKey('setup-school'));
+    final schoolLabel = find.text('学校');
+    final labelTop = tester.getTopLeft(schoolLabel).dy;
+    await tester.enterText(school, '示例大学');
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(schoolLabel).dy, labelTop);
+    final decorator = tester.widget<InputDecorator>(
+      find.descendant(of: school, matching: find.byType(InputDecorator)),
+    );
+    final colors = tester.element(school).colors;
+    expect(decorator.isFocused, isTrue);
+    expect(decorator.decoration.fillColor, colors.surfaceMuted);
+    expect(decorator.decoration.focusedBorder?.borderSide.color, colors.accent);
+    expect(tester.getSize(school).height, greaterThanOrEqualTo(48));
+    await tester.enterText(
+      find.byKey(const ValueKey('setup-nickname')),
+      '示例昵称',
+    );
+    await tester.tap(find.text('继续到课表导入'));
+    await tester.pumpAndSettle();
+    expect(find.text('首次设置 · 2 / 2'), findsOneWidget);
+    expect(find.text('示例大学 · 暂未适配'), findsOneWidget);
+    await tester.tap(find.text('稍后导入'));
+    await tester.pumpAndSettle();
+    final persistedProfile = StudentProfileController();
+    await persistedProfile.load();
+    expect(persistedProfile.nickname, '示例昵称');
 
     expect(find.text('今日课程'), findsNothing);
     expect(find.text('今天没有课'), findsNothing);
@@ -69,6 +98,10 @@ void main() {
       );
       await tester.pumpAndSettle();
     }
+    await tester.tap(find.text('稍后填写'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('稍后导入'));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('今日课程'), findsNothing);
 
