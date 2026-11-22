@@ -10,7 +10,6 @@ import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dar
 import 'package:qinghe_app/features/schedule/widgets/schedule_lesson_card.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_period_label.dart';
 
-const _periodCount = 10;
 const _weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];
 
 class SchedulePage extends GetView<ScheduleController> {
@@ -22,6 +21,7 @@ class SchedulePage extends GetView<ScheduleController> {
     return SafeArea(
       bottom: false,
       child: Obx(() {
+        final config = controller.activeTimetable?.config;
         final allDays = controller.days;
         final days = appearance.scheduleShowWeekend.value
             ? allDays
@@ -78,9 +78,12 @@ class SchedulePage extends GetView<ScheduleController> {
                       textLayout: appearance.scheduleTextLayout.value,
                       showTime: appearance.scheduleShowTime.value,
                       timeAlignment: appearance.scheduleTimeAlignment.value,
-                      startTimes: appearance.scheduleStartTimes.toList(),
-                      periodDuration: appearance.schedulePeriodDuration.value
-                          .round(),
+                      startTimes:
+                          config?.periodStartTimes ??
+                          appearance.scheduleStartTimes.toList(),
+                      periodDuration:
+                          config?.periodDurationMinutes ??
+                          appearance.schedulePeriodDuration.value.round(),
                       railTextLayout: railTextLayout,
                       showCurrentTimeLine:
                           appearance.scheduleShowCurrentTimeLine.value,
@@ -300,7 +303,8 @@ class _WeekGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final gridHeight = rowHeight * _periodCount;
+    final periodCount = startTimes.length;
+    final gridHeight = rowHeight * periodCount;
     final currentTimeOffset = showCurrentTimeLine && _containsToday(days, today)
         ? _timeOffset(currentMinute, rowHeight, startTimes, periodDuration)
         : null;
@@ -323,7 +327,7 @@ class _WeekGrid extends StatelessWidget {
           return Stack(
             children: [
               if (showGridLines)
-                for (var row = 1; row < _periodCount; row++)
+                for (var row = 1; row < periodCount; row++)
                   Positioned(
                     left: timeRailWidth,
                     right: 0,
@@ -335,7 +339,7 @@ class _WeekGrid extends StatelessWidget {
                       ),
                     ),
                   ),
-              for (var row = 0; row < _periodCount; row++)
+              for (var row = 0; row < periodCount; row++)
                 Positioned(
                   left: 0,
                   top: row * rowHeight,

@@ -1,10 +1,11 @@
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/data/models/teaching_week.dart';
+import 'package:qinghe_app/data/repositories/timetable_source.dart';
 
 /// 虚构的示例课表，在本地数据库接入前供界面展示使用。
 ///
 /// 所有课程、地点和教师均为占位内容，不代表真实信息。
-class SampleTimetableRepository {
+class SampleTimetableRepository implements TimetableSource {
   SampleTimetableRepository({DateTime? week1Monday, this.weekCount = 18})
     : week1Monday = week1Monday ?? DateTime(2026, 9, 7);
 
@@ -50,9 +51,11 @@ class SampleTimetableRepository {
     ],
   };
 
+  @override
   int? teachingWeekOn(DateTime date) =>
       teachingWeekOf(date, week1Monday, weekCount: weekCount);
 
+  @override
   List<LessonOccurrence> lessonsOn(DateTime date) {
     if (teachingWeekOn(date) == null) return const [];
     final key =

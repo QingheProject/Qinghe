@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -5,9 +8,19 @@ import 'package:qinghe_app/app/app.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/student_profile_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/data/import/timetable_import.dart';
+import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
+import 'package:qinghe_app/features/timetable_setup/views/timetable_import_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+Finder _scrollableIn(String key) => find
+    .descendant(
+      of: find.byKey(ValueKey(key)),
+      matching: find.byType(Scrollable),
+    )
+    .first;
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -132,7 +145,13 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-profile')));
     await tester.pumpAndSettle();
     expect(shell.currentIndex.value, 2);
-    expect(find.text('重新查看引导'), findsOneWidget);
+    final replay = find.text('重新查看引导');
+    await tester.scrollUntilVisible(
+      replay,
+      220,
+      scrollable: _scrollableIn('profile-scroll'),
+    );
+    expect(replay, findsOneWidget);
   });
 
   testWidgets('左右滑动切换主要页面并同步导航选中项', (tester) async {
@@ -150,6 +169,81 @@ void main() {
     await tester.pumpAndSettle();
     expect(shell.currentIndex.value, 0);
     expect(find.text('今日课程'), findsNothing);
+  });
+
+  testWidgets('选择 CSV 后先预览，确认后课程显示在我的和实际课表', (tester) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('onboarding_completed', true);
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    final repository = Get.find<LocalTimetableRepository>();
+
+    Get.to<void>(
+      () => TimetableImportPage(
+        pickFile: (types) async {
+          expect(types.single.extensions, ['csv']);
+          return XFile.fromData(
+            utf8.encode(
+              TimetableImport.csvTemplate.replaceFirst('1-16', '1-18'),
+            ),
+            name: 'sample.csv',
+          );
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('CSV 模板'));
+    await tester.pumpAndSettle();
+    expect(find.text('CSV · 已读取 1 条安排'), findsOneWidget);
+    final name = find.byKey(const ValueKey('semester-name'));
+    await tester.scrollUntilVisible(
+      name,
+      220,
+      scrollable: _scrollableIn('setup-scroll'),
+    );
+    await tester.enterText(name, '示例学期');
+    await tester.enterText(
+      find.byKey(const ValueKey('semester-monday')),
+      '2026-09-07',
+    );
+    final check = find.text('检查并预览');
+    expect(check.hitTestable(), findsOneWidget);
+    await tester.tap(check);
+    await tester.pumpAndSettle();
+    expect(find.text('导入预览'), findsOneWidget);
+    expect(repository.active, isNull);
+    final commit = find.text('确认导入');
+    expect(commit.hitTestable(), findsOneWidget);
+    await tester.tap(commit);
+    await tester.pumpAndSettle();
+    expect(repository.active?.rules.single.name, '示例课程甲');
+
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+    expect(find.text('示例课程甲'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('nav-profile')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('my-course-summary')), findsOneWidget);
+    expect(find.text('示例学期'), findsOneWidget);
+    final allCourses = find.text('查看全部课程');
+    await tester.scrollUntilVisible(
+      allCourses,
+      160,
+      scrollable: _scrollableIn('profile-scroll'),
+    );
+    await tester.pumpAndSettle();
+    expect(allCourses.hitTestable(), findsOneWidget);
+    await tester.tap(allCourses);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('关闭全部课程'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('示例课程甲'),
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('课表顶部不响应纵向滚动手势', (tester) async {
@@ -182,7 +276,13 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('nav-profile')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('外观与布局'));
+    final appearanceEntry = find.text('外观与布局');
+    await tester.scrollUntilVisible(
+      appearanceEntry,
+      220,
+      scrollable: _scrollableIn('profile-scroll'),
+    );
+    await tester.tap(appearanceEntry);
     await tester.pumpAndSettle();
 
     final appearance = Get.find<AppearanceController>();
@@ -231,7 +331,13 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('nav-profile')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('课表外观'));
+    final scheduleAppearanceEntry = find.text('课表外观');
+    await tester.scrollUntilVisible(
+      scheduleAppearanceEntry,
+      220,
+      scrollable: _scrollableIn('profile-scroll'),
+    );
+    await tester.tap(scheduleAppearanceEntry);
     await tester.pumpAndSettle();
 
     final appearance = Get.find<AppearanceController>();

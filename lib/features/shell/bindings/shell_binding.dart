@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:qinghe_app/data/repositories/sample_timetable_repository.dart';
+import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/features/home/controllers/home_controller.dart';
 import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
@@ -10,10 +10,10 @@ class ShellBinding extends Bindings {
     Get
       ..lazyPut<ShellController>(ShellController.new)
       ..lazyPut<HomeController>(
-        () => HomeController(Get.find<SampleTimetableRepository>()),
+        () => HomeController(Get.find<LocalTimetableRepository>()),
       )
       ..lazyPut<ScheduleController>(
-        () => ScheduleController(Get.find<SampleTimetableRepository>()),
+        () => ScheduleController(Get.find<LocalTimetableRepository>()),
       );
   }
 }
