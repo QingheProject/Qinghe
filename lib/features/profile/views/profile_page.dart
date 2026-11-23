@@ -4,12 +4,16 @@ import 'package:get/get.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/student_profile_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/app_tag.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
+import 'package:qinghe_app/app/widgets/student_avatar.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
-import 'package:qinghe_app/features/profile/widgets/my_courses_card.dart';
+import 'package:qinghe_app/features/profile/widgets/profile_editor_sheet.dart';
+import 'package:qinghe_app/features/profile/widgets/semester_progress_card.dart';
+import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -22,12 +26,18 @@ class ProfilePage extends StatelessWidget {
     final timetables = Get.find<LocalTimetableRepository>();
 
     return SafeArea(
+      bottom: false,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
           child: ListView(
             key: const ValueKey('profile-scroll'),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.paddingOf(context).bottom + 24,
+            ),
             children: [
               const AppPageHeader(title: '我的'),
               const SizedBox(height: 24),
@@ -35,18 +45,30 @@ class ProfilePage extends StatelessWidget {
                 () => _ProfileCard(
                   nickname: profile.nickname,
                   school: profile.school,
+                  avatarIcon: profile.avatarIcon,
+                  avatarColor: profile.avatarColor,
+                  onTap: () => showProfileEditorSheet(context),
                 ),
               ),
               const SizedBox(height: 20),
-              Obx(
-                () => MyCoursesCard(
-                  timetable: timetables.active,
+              Obx(() {
+                final timetable = timetables.active;
+                return SemesterProgressCard(
+                  key: const ValueKey('profile-semester-dial'),
+                  timetable: timetable,
                   now: DateTime.now(),
-                ),
-              ),
+                  onTap: () {
+                    if (timetable == null) {
+                      Get.toNamed<void>(AppRoutes.timetableImport);
+                      return;
+                    }
+                    Get.find<ShellController>().selectSection(1);
+                  },
+                );
+              }),
               const SizedBox(height: 20),
               AppListGroup(
-                title: '课表',
+                title: '设置',
                 children: [
                   AppListRow(
                     icon: AppIcons.columns,
@@ -56,20 +78,15 @@ class ProfilePage extends StatelessWidget {
                         Get.toNamed<void>(AppRoutes.scheduleAppearance),
                   ),
                   AppListRow(
-                    icon: AppIcons.calendar,
+                    icon: AppIcons.calendarCheck,
                     title: '课表导入与配置',
                     subtitle: '学期、节次和导入来源',
                     onTap: () => Get.toNamed<void>(AppRoutes.timetableImport),
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              AppListGroup(
-                title: '偏好',
-                children: [
                   AppListRow(
                     icon: AppIcons.palette,
-                    title: '外观与布局',
+                    title: '外观',
+                    subtitle: '主题与配色',
                     onTap: () => Get.toNamed<void>(AppRoutes.appearance),
                   ),
                   AppListRow(
@@ -77,17 +94,6 @@ class ProfilePage extends StatelessWidget {
                     title: '课程提醒',
                     trailing: soonTag,
                     onTap: () => soon('课程提醒'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              AppListGroup(
-                title: '其他',
-                children: [
-                  AppListRow(
-                    icon: AppIcons.sparkle,
-                    title: '重新查看引导',
-                    onTap: () => Get.toNamed<void>(AppRoutes.onboarding),
                   ),
                   AppListRow(
                     icon: AppIcons.info,
@@ -106,57 +112,82 @@ class ProfilePage extends StatelessWidget {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.nickname, required this.school});
+  const _ProfileCard({
+    required this.nickname,
+    required this.school,
+    required this.avatarIcon,
+    required this.avatarColor,
+    required this.onTap,
+  });
 
   final String nickname;
   final String school;
+  final int avatarIcon;
+  final int avatarColor;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final text = Theme.of(context).textTheme;
+    final hasName = nickname.trim().isNotEmpty;
+
     return Pressable(
       color: colors.surface,
       borderRadius: BorderRadius.circular(AppRadius.xl),
       semanticLabel: '编辑个人信息',
-      onTap: () => Get.toNamed<void>(AppRoutes.studentProfile),
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(AppSpace.lg),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: colors.accentSoft,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Icon(AppIcons.user, color: colors.accent),
+            StudentAvatar(
+              iconIndex: avatarIcon,
+              colorIndex: avatarColor,
+              size: 58,
+              onTap: onTap,
             ),
-            const SizedBox(width: AppSpace.md),
+            const SizedBox(width: AppSpace.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    nickname.isEmpty ? '个人信息' : nickname,
-                    style: text.titleMedium,
+                    hasName ? nickname : '未填写昵称',
+                    style: text.titleMedium?.copyWith(
+                      color: hasName ? colors.ink : colors.inkMuted,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  Text(
-                    school.isEmpty
-                        ? (nickname.isEmpty ? '填写学校与昵称' : '填写学校')
-                        : school,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.bodySmall,
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(AppIcons.school, size: 14, color: colors.inkFaint),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          school.trim().isEmpty ? '填写学校名称' : school,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.bodySmall,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             const SizedBox(width: AppSpace.sm),
-            Icon(AppIcons.edit, color: colors.inkMuted, size: 19),
+            AnimatedContainer(
+              duration: AppMotion.of(context, AppMotion.fast),
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: colors.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(AppIcons.edit, color: colors.inkMuted, size: 17),
+            ),
           ],
         ),
       ),

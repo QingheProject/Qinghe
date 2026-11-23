@@ -8,11 +8,15 @@ import 'package:qinghe_app/app/app.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/student_profile_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/widgets/pressable.dart';
 import 'package:qinghe_app/data/import/timetable_import.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/features/onboarding/controllers/onboarding_controller.dart';
+import 'package:qinghe_app/features/profile/views/appearance_page.dart';
+import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_lesson_card.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
+import 'package:qinghe_app/features/shell/widgets/app_navigation.dart';
 import 'package:qinghe_app/features/timetable_setup/views/timetable_import_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -139,14 +143,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(shell.currentIndex.value, 1);
     expect(find.byKey(const ValueKey('schedule-grid')), findsOneWidget);
-    expect(find.byTooltip('上一周'), findsNothing);
-    expect(find.byTooltip('下一周'), findsNothing);
-    expect(find.byKey(const ValueKey('schedule-today-header')), findsOneWidget);
+    expect(find.byTooltip('上一周'), findsOneWidget);
+    expect(find.byTooltip('下一周'), findsOneWidget);
+
+    final schedule = Get.find<ScheduleController>();
+    expect(find.byKey(const ValueKey('schedule-week-today')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('schedule-week-next')));
+    await tester.pumpAndSettle();
+    expect(schedule.isCurrentWeek, isFalse);
+    expect(find.byKey(const ValueKey('schedule-week-today')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('schedule-week-today')));
+    await tester.pumpAndSettle();
+    expect(schedule.isCurrentWeek, isTrue);
+    expect(find.byKey(const ValueKey('schedule-week-today')), findsNothing);
+
+    final todayHeader = tester.getSize(
+      find.byKey(const ValueKey('schedule-today-header')),
+    );
+    expect(todayHeader.width, todayHeader.height);
 
     await tester.tap(find.byKey(const ValueKey('nav-profile')));
     await tester.pumpAndSettle();
     expect(shell.currentIndex.value, 2);
-    final replay = find.text('重新查看引导');
+    final replay = find.text('关于青禾');
     await tester.scrollUntilVisible(
       replay,
       220,
@@ -155,7 +174,7 @@ void main() {
     expect(replay, findsOneWidget);
   });
 
-  testWidgets('左右滑动切换主要页面并同步导航选中项', (tester) async {
+  testWidgets('左右滑动不再切换主要页面，只响应导航点击', (tester) async {
     await tester.pumpWidget(const QingheApp());
     await tester.pumpAndSettle();
     await tester.tap(find.text('跳过'));
@@ -164,12 +183,71 @@ void main() {
     final shell = Get.find<ShellController>();
     await tester.fling(find.byType(PageView), const Offset(-400, 0), 1500);
     await tester.pumpAndSettle();
-    expect(shell.currentIndex.value, 1);
+    expect(shell.currentIndex.value, 0);
 
     await tester.fling(find.byType(PageView), const Offset(400, 0), 1500);
     await tester.pumpAndSettle();
     expect(shell.currentIndex.value, 0);
-    expect(find.text('今日课程'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+    expect(shell.currentIndex.value, 1);
+  });
+
+  testWidgets('旧版底栏设置不生效，连续点击以最后一次选择为准', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_completed': true,
+      'bottom_bar_style': 'fixed',
+      'navigation_content_style': 'labels',
+    });
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+
+    final bar = find.byType(AppTabBar);
+    final scaffold = find.ancestor(of: bar, matching: find.byType(Scaffold));
+    expect(tester.widget<Scaffold>(scaffold.first).extendBody, isTrue);
+    expect(
+      find.descendant(of: bar, matching: find.byType(BackdropFilter)),
+      findsOneWidget,
+    );
+    expect(find.descendant(of: bar, matching: find.text('首页')), findsOneWidget);
+    expect(
+      find.descendant(of: bar, matching: find.byType(Icon)),
+      findsNWidgets(3),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('nav-profile')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+
+    final shell = Get.find<ShellController>();
+    expect(shell.currentIndex.value, 1);
+    expect(shell.pageController.page, 1);
+    expect(find.byKey(const ValueKey('schedule-grid')), findsOneWidget);
+  });
+
+  testWidgets('我的页面滚动区域延伸到底栏下方，末项仍可滚出底栏', (tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_completed': true});
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    final navItem = find.byKey(const ValueKey('nav-profile'));
+    await tester.tap(navItem);
+    await tester.pumpAndSettle();
+
+    final scrollable = _scrollableIn('profile-scroll');
+    final itemBounds = tester.getRect(navItem);
+    expect(
+      tester.getBottomRight(scrollable).dy,
+      greaterThan(itemBounds.bottom),
+    );
+    final position = tester.state<ScrollableState>(scrollable).position;
+    position.jumpTo(position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    final last = find.text('关于青禾');
+    expect(last.hitTestable(), findsOneWidget);
+    expect(tester.getBottomRight(last).dy, lessThan(itemBounds.top));
   });
 
   testWidgets('选择 CSV 后先预览，确认后课程显示在我的和实际课表', (tester) async {
@@ -193,7 +271,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('CSV 模板'));
+    await tester.tap(find.text('CSV 文件'));
     await tester.pumpAndSettle();
     expect(find.text('CSV · 已读取 1 条安排'), findsOneWidget);
     final name = find.byKey(const ValueKey('semester-name'));
@@ -224,26 +302,14 @@ void main() {
     expect(find.text('示例课程甲'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('nav-profile')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('my-course-summary')), findsOneWidget);
+    final dial = find.byKey(const ValueKey('profile-semester-dial'));
+    expect(dial, findsOneWidget);
     expect(find.text('示例学期'), findsOneWidget);
-    final allCourses = find.text('查看全部课程');
-    await tester.scrollUntilVisible(
-      allCourses,
-      160,
-      scrollable: _scrollableIn('profile-scroll'),
-    );
+    // 进度环里的当前周数字与课程统计同时存在。
+    expect(find.textContaining('门课程'), findsOneWidget);
+    await tester.tap(dial);
     await tester.pumpAndSettle();
-    expect(allCourses.hitTestable(), findsOneWidget);
-    await tester.tap(allCourses);
-    await tester.pumpAndSettle();
-    expect(find.byTooltip('关闭全部课程'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(BottomSheet),
-        matching: find.text('示例课程甲'),
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('示例课程甲'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -281,7 +347,7 @@ void main() {
     Get.to<void>(() => const TimetableImportPage());
     await tester.pumpAndSettle();
 
-    final csv = find.text('CSV 模板');
+    final csv = find.text('CSV 文件');
     final json = find.text('JSON 文件');
     expect(tester.getTopLeft(json).dy, greaterThan(tester.getTopLeft(csv).dy));
 
@@ -300,7 +366,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('外观设置可以切换主题、底栏形态和内容', (tester) async {
+  testWidgets('外观设置可以切换主题与配色，底栏不再提供形态设置', (tester) async {
     await tester.pumpWidget(const QingheApp());
     await tester.pumpAndSettle();
     await tester.tap(find.text('跳过'));
@@ -308,9 +374,9 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('nav-profile')));
     await tester.pumpAndSettle();
-    final appearanceEntry = find.text('外观与布局');
+    final appearanceEntry = find.text('外观');
     await tester.scrollUntilVisible(
-      appearanceEntry,
+      appearanceEntry.hitTestable(),
       220,
       scrollable: _scrollableIn('profile-scroll'),
     );
@@ -318,9 +384,15 @@ void main() {
     await tester.pumpAndSettle();
 
     final appearance = Get.find<AppearanceController>();
-    await tester.tap(find.text('深色'));
+    final darkOption = find.ancestor(
+      of: find.text('深色'),
+      matching: find.byType(Pressable),
+    );
+    final initialBounds = tester.getRect(darkOption);
+    await tester.tap(darkOption);
     await tester.pumpAndSettle();
     expect(appearance.themeMode.value, AppearanceThemeMode.dark);
+    expect(tester.getRect(darkOption), initialBounds);
 
     await tester.tap(find.text('暮紫'));
     await tester.pumpAndSettle();
@@ -336,6 +408,22 @@ void main() {
       AppColors.darkFor(AppAccentTone.violet).canvas,
     );
     expect(appliedColors.canvas, AppColors.dark.canvas);
+    final violet = AppColors.darkFor(AppAccentTone.violet);
+    final violetOption = find.ancestor(
+      of: find.text('暮紫'),
+      matching: find.byType(Pressable),
+    );
+    Finder swatchOf(Finder option, Color color) => find.descendant(
+      of: option,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.decoration is BoxDecoration &&
+            (widget.decoration! as BoxDecoration).color == color,
+      ),
+    );
+    expect(swatchOf(violetOption, violet.accent), findsOneWidget);
+    expect(swatchOf(darkOption, violet.accentSoft), findsOneWidget);
 
     await tester.tap(find.text('黑白'));
     await tester.pumpAndSettle();
@@ -348,23 +436,37 @@ void main() {
       AppColors.darkFor(AppAccentTone.monochrome).accent,
     );
     expect(monochromeColors.canvas, AppColors.dark.canvas);
+    expect(find.text('贴底'), findsNothing);
+    expect(find.text('仅文字'), findsNothing);
+  });
 
-    final fixedBarOption = find.text('贴底');
-    await tester.ensureVisible(fixedBarOption);
+  testWidgets('窄屏大字号下日期保持方形，主题选项可以重新排布', (tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_completed': true});
+    tester.view
+      ..physicalSize = const Size(320, 740)
+      ..devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpWidget(const QingheApp());
     await tester.pumpAndSettle();
-    await tester.tap(fixedBarOption);
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
     await tester.pumpAndSettle();
-    expect(appearance.bottomBarStyle.value, BottomBarStyle.fixed);
-
-    final labelsOption = find.text('仅文字');
-    await tester.ensureVisible(labelsOption);
-    await tester.pumpAndSettle();
-    await tester.tap(labelsOption);
-    await tester.pumpAndSettle();
-    expect(
-      appearance.navigationContentStyle.value,
-      NavigationContentStyle.labels,
+    final today = tester.getSize(
+      find.byKey(const ValueKey('schedule-today-header')),
     );
+    expect(today.width, today.height);
+    expect(tester.takeException(), isNull);
+
+    Get.to<void>(() => const AppearancePage());
+    await tester.pumpAndSettle();
+    final system = find.text('跟随系统');
+    final dark = find.text('深色');
+    expect(
+      tester.getTopLeft(dark).dy,
+      greaterThan(tester.getTopLeft(system).dy),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('课表外观设置会实时更新模拟预览', (tester) async {
