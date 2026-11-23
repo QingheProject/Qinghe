@@ -32,6 +32,7 @@ abstract final class AppIcons {
   static const check = PhosphorIconsBold.check;
   static const add = PhosphorIconsBold.plus;
   static const checkCircle = PhosphorIconsBold.checkCircle;
+  static const refresh = PhosphorIconsBold.arrowsClockwise;
   static const close = PhosphorIconsBold.x;
   static const edit = PhosphorIconsBold.pencilSimple;
   static const error = PhosphorIconsBold.warningCircle;
@@ -44,6 +45,30 @@ abstract final class AppIcons {
   static const windowMinimize = PhosphorIconsBold.minus;
   static const windowMaximize = PhosphorIconsBold.square;
   static const windowRestore = PhosphorIconsBold.copy;
+
+  /// 头像可选图形，与 [AppIcons.avatarChoices] 的索引对应。
+  static const star = PhosphorIconsBold.star;
+  static const moon = PhosphorIconsBold.moon;
+  static const coffee = PhosphorIconsBold.coffee;
+  static const leaf = PhosphorIconsBold.leaf;
+  static const book = PhosphorIconsBold.bookOpenText;
+  static const heart = PhosphorIconsBold.heart;
+  static const smile = PhosphorIconsBold.smiley;
+  static const lightning = PhosphorIconsBold.lightning;
+
+  /// 个人头像可选的图形，顺序即存储的索引。
+  static const avatarChoices = <IconData>[
+    user,
+    school,
+    book,
+    star,
+    leaf,
+    coffee,
+    moon,
+    sparkle,
+    smile,
+    heart,
+  ];
 
   /// 时间线的实心状态标记。
   static const statusDot = PhosphorIconsFill.circle;
