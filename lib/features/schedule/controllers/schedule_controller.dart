@@ -25,6 +25,9 @@ class ScheduleController extends GetxController {
   late final Rx<DateTime> weekStart;
   late final Rx<DateTime> currentTime;
 
+  /// 最近一次切周的方向：1 表示向后，-1 表示向前，用于让过渡位移与手势一致。
+  final weekDirection = 1.obs;
+
   DateTime get today => _dateOnly(currentTime.value);
 
   int get currentMinute =>
@@ -79,14 +82,17 @@ class ScheduleController extends GetxController {
       _repository.lessonsOn(date);
 
   void previousWeek() {
+    weekDirection.value = -1;
     weekStart.value = weekStart.value.subtract(const Duration(days: 7));
   }
 
   void nextWeek() {
+    weekDirection.value = 1;
     weekStart.value = weekStart.value.add(const Duration(days: 7));
   }
 
   void goToCurrentWeek() {
+    weekDirection.value = currentWeekStart.isAfter(weekStart.value) ? 1 : -1;
     weekStart.value = currentWeekStart;
   }
 
