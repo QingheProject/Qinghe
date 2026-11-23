@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
@@ -107,7 +108,14 @@ class _HomePageState extends State<HomePage>
               lesson: _controller.focusLesson,
               minuteOfDay: minute,
               hasLessonsToday: true,
-              onOpen: (lesson) => showLessonSheet(context, lesson),
+              onOpen: (lesson, origin) => showLessonDialog(
+                context,
+                lesson,
+                date: now,
+                origin: origin,
+                originColor: context.colors.accent,
+                originRadius: AppRadius.xl,
+              ),
             ),
         ];
 
