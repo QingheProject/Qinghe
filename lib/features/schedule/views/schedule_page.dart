@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
@@ -9,11 +10,36 @@ import 'package:qinghe_app/features/home/widgets/lesson_sheet.dart';
 import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_lesson_card.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_period_label.dart';
+import 'package:qinghe_app/features/schedule/widgets/schedule_week_switcher.dart';
 
 const _weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];
 
 class SchedulePage extends GetView<ScheduleController> {
   const SchedulePage({super.key});
+
+  void _shiftWeek(VoidCallback action) {
+    HapticFeedback.selectionClick();
+    action();
+  }
+
+  /// 课表按切换方向左右滑入，离场的一侧同时反向滑出。
+  Widget _weekSlideTransition(
+    Widget child,
+    Animation<double> animation,
+    int direction,
+  ) {
+    final entering = animation.status != AnimationStatus.reverse;
+    final begin = Offset((entering ? direction : -direction) * 0.07, 0);
+    return SlideTransition(
+      position: animation.drive(
+        Tween(
+          begin: begin,
+          end: Offset.zero,
+        ).chain(CurveTween(curve: AppMotion.emphasized)),
+      ),
+      child: FadeTransition(opacity: animation, child: child),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +57,7 @@ class SchedulePage extends GetView<ScheduleController> {
           showTime: appearance.scheduleShowTime.value,
           textLayout: railTextLayout,
         );
+        final weekDirection = controller.weekDirection.value;
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 960),
@@ -42,9 +69,14 @@ class SchedulePage extends GetView<ScheduleController> {
                   child: _ScheduleHeading(
                     days: days,
                     teachingWeek: controller.teachingWeek,
+                    isCurrentWeek: controller.isCurrentWeek,
+                    weekDirection: weekDirection,
+                    onPrevious: () => _shiftWeek(controller.previousWeek),
+                    onNext: () => _shiftWeek(controller.nextWeek),
+                    onToday: () => _shiftWeek(controller.goToCurrentWeek),
                   ),
                 ),
-                const SizedBox(height: AppSpace.xs),
+                const SizedBox(height: AppSpace.sm),
                 _WeekdayHeader(
                   days: days,
                   today: controller.today,
@@ -57,40 +89,89 @@ class SchedulePage extends GetView<ScheduleController> {
                     padding: EdgeInsets.only(
                       bottom: MediaQuery.paddingOf(context).bottom + 96,
                     ),
-                    child: _WeekGrid(
-                      key: const ValueKey('schedule-grid'),
-                      days: days,
-                      today: controller.today,
-                      currentMinute: controller.currentMinute,
-                      timeRailWidth: timeRailWidth,
-                      rowHeight: appearance.scheduleRowHeight.value,
-                      colorScheme: appearance.courseColorScheme.value,
-                      saturation: appearance.scheduleCourseSaturation.value,
-                      cardWidthFactor: appearance.scheduleCardWidth.value,
-                      cardInset: appearance.scheduleCardInset.value,
-                      verticalInset: appearance.scheduleVerticalInset.value,
-                      cardOpacity: appearance.scheduleCardOpacity.value,
-                      cardRadius: appearance.scheduleCardRadius.value,
-                      showBorder: appearance.scheduleShowBorder.value,
-                      borderWidth: appearance.scheduleBorderWidth.value,
-                      showTopLine: appearance.scheduleShowTopLine.value,
-                      showLocation: appearance.scheduleShowLocation.value,
-                      showTeacher: appearance.scheduleShowTeacher.value,
-                      textLayout: appearance.scheduleTextLayout.value,
-                      showTime: appearance.scheduleShowTime.value,
-                      timeAlignment: appearance.scheduleTimeAlignment.value,
-                      startTimes:
-                          config?.periodStartTimes ??
-                          appearance.scheduleStartTimes.toList(),
-                      periodDuration:
-                          config?.periodDurationMinutes ??
-                          appearance.schedulePeriodDuration.value.round(),
-                      railTextLayout: railTextLayout,
-                      showCurrentTimeLine:
-                          appearance.scheduleShowCurrentTimeLine.value,
-                      showGridLines: appearance.scheduleShowGridLines.value,
-                      lessonsOn: controller.lessonsOn,
-                      onOpen: (lesson) => showLessonSheet(context, lesson),
+                    child: ClipRect(
+                      // 切换周次时整张课表按方向左右滑动进出，旧网格同时反向滑出。
+                      child: AnimatedSwitcher(
+                        duration: AppMotion.of(
+                          context,
+                          const Duration(milliseconds: 260),
+                        ),
+                        switchInCurve: AppMotion.emphasized,
+                        switchOutCurve: AppMotion.emphasized,
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: Alignment.topCenter,
+                          children: [
+                            for (final child in previous) child,
+                            if (current != null) current,
+                          ],
+                        ),
+                        transitionBuilder: (child, animation) =>
+                            _weekSlideTransition(
+                              child,
+                              animation,
+                              weekDirection,
+                            ),
+                        child: KeyedSubtree(
+                          key: ValueKey(controller.weekStart.value),
+                          child: _WeekGrid(
+                            key: const ValueKey('schedule-grid'),
+                            days: days,
+                            today: controller.today,
+                            currentMinute: controller.currentMinute,
+                            timeRailWidth: timeRailWidth,
+                            rowHeight: appearance.scheduleRowHeight.value,
+                            colorScheme: appearance.courseColorScheme.value,
+                            saturation:
+                                appearance.scheduleCourseSaturation.value,
+                            cardWidthFactor: appearance.scheduleCardWidth.value,
+                            cardInset: appearance.scheduleCardInset.value,
+                            verticalInset:
+                                appearance.scheduleVerticalInset.value,
+                            cardOpacity: appearance.scheduleCardOpacity.value,
+                            cardRadius: appearance.scheduleCardRadius.value,
+                            showBorder: appearance.scheduleShowBorder.value,
+                            borderWidth: appearance.scheduleBorderWidth.value,
+                            showTopLine: appearance.scheduleShowTopLine.value,
+                            showLocation: appearance.scheduleShowLocation.value,
+                            showTeacher: appearance.scheduleShowTeacher.value,
+                            textLayout: appearance.scheduleTextLayout.value,
+                            showTime: appearance.scheduleShowTime.value,
+                            timeAlignment:
+                                appearance.scheduleTimeAlignment.value,
+                            startTimes:
+                                config?.periodStartTimes ??
+                                appearance.scheduleStartTimes.toList(),
+                            periodDuration:
+                                config?.periodDurationMinutes ??
+                                appearance.schedulePeriodDuration.value.round(),
+                            railTextLayout: railTextLayout,
+                            showCurrentTimeLine:
+                                appearance.scheduleShowCurrentTimeLine.value,
+                            showGridLines:
+                                appearance.scheduleShowGridLines.value,
+                            lessonsOn: controller.lessonsOn,
+                            onOpen: (lesson, origin) {
+                              // 对话框从这张卡片的底色与圆角长出来，再过渡到主题底色。
+                              final tone = CoursePalette.of(
+                                context,
+                                lesson.colorIndex,
+                                appearance.courseColorScheme.value,
+                                appearance.scheduleCourseSaturation.value,
+                              );
+                              showLessonDialog(
+                                context,
+                                lesson,
+                                origin: origin,
+                                originColor: tone.background.withValues(
+                                  alpha: appearance.scheduleCardOpacity.value,
+                                ),
+                                originRadius:
+                                    appearance.scheduleCardRadius.value,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -104,32 +185,61 @@ class SchedulePage extends GetView<ScheduleController> {
 }
 
 class _ScheduleHeading extends StatelessWidget {
-  const _ScheduleHeading({required this.days, required this.teachingWeek});
+  const _ScheduleHeading({
+    required this.days,
+    required this.teachingWeek,
+    required this.isCurrentWeek,
+    required this.weekDirection,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onToday,
+  });
 
   final List<DateTime> days;
   final int? teachingWeek;
+  final bool isCurrentWeek;
+  final int weekDirection;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onToday;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final weekLabel = teachingWeek == null ? '学期外' : '第 $teachingWeek 周';
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          '课表',
-          key: const ValueKey('schedule-heading'),
-          style: text.titleLarge,
+        Row(
+          children: [
+            Text(
+              '课表',
+              key: const ValueKey('schedule-heading'),
+              style: text.titleLarge,
+            ),
+            const Spacer(),
+            ScheduleWeekSwitcher(
+              teachingWeek: teachingWeek,
+              direction: weekDirection,
+              onPrevious: onPrevious,
+              onNext: onNext,
+            ),
+          ],
         ),
-        const SizedBox(width: AppSpace.sm),
-        Expanded(
-          child: Text(
-            '$weekLabel · ${_formatDateRange(days)}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: text.bodySmall,
-          ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _formatDateRange(days),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text.bodySmall,
+              ),
+            ),
+            const SizedBox(width: AppSpace.sm),
+            ScheduleTodayButton(visible: !isCurrentWeek, onTap: onToday),
+          ],
         ),
       ],
     );
@@ -153,7 +263,7 @@ class _WeekdayHeader extends StatelessWidget {
     final text = Theme.of(context).textTheme;
 
     return SizedBox(
-      height: 36,
+      height: 42,
       child: Row(
         children: [
           SizedBox(
@@ -200,8 +310,9 @@ class _DayLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final foreground = today
-        ? colors.accent
+        ? colors.onAccent
         : weekend
         ? colors.inkFaint
         : colors.inkMuted;
@@ -209,33 +320,62 @@ class _DayLabel extends StatelessWidget {
     return Semantics(
       label: '${date.month}月${date.day}日，星期$weekday${today ? '，今天' : ''}',
       child: ExcludeSemantics(
-        child: AnimatedContainer(
-          key: today ? const ValueKey('schedule-today-header') : null,
-          duration: AppMotion.of(context, AppMotion.fast),
-          width: 32,
-          height: 34,
-          decoration: BoxDecoration(
-            color: today ? colors.accentSoft : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                weekday,
-                style: text.labelSmall?.copyWith(color: foreground, height: 1),
+        child: Center(
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: AnimatedContainer(
+              key: today ? const ValueKey('schedule-today-header') : null,
+              duration: AppMotion.of(context, AppMotion.fast),
+              curve: AppMotion.emphasized,
+              decoration: BoxDecoration(
+                // 选中日期只做轻微透明底色，不加投影，避免在顶栏上显得沉重。
+                color: today
+                    ? colors.accent.withValues(alpha: dark ? 0.72 : 0.88)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              const SizedBox(height: 2),
-              Text(
-                '${date.day}',
-                style: text.labelMedium?.copyWith(
-                  color: foreground,
-                  height: 1,
-                  fontWeight: today ? FontWeight.w700 : FontWeight.w500,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        weekday,
+                        style: text.labelSmall?.copyWith(
+                          color: today
+                              ? foreground.withValues(alpha: 0.82)
+                              : foreground,
+                          height: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${date.day}',
+                        style: text.labelMedium?.copyWith(
+                          color: foreground,
+                          height: 1,
+                          fontWeight: today ? FontWeight.w700 : FontWeight.w500,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      if (today) ...[
+                        const SizedBox(height: 2.5),
+                        Container(
+                          width: 3.5,
+                          height: 3.5,
+                          decoration: BoxDecoration(
+                            color: foreground.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -301,13 +441,14 @@ class _WeekGrid extends StatelessWidget {
   final bool showCurrentTimeLine;
   final bool showGridLines;
   final List<LessonOccurrence> Function(DateTime date) lessonsOn;
-  final ValueChanged<LessonOccurrence> onOpen;
+  final void Function(LessonOccurrence lesson, Rect? origin) onOpen;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final periodCount = startTimes.length;
     final gridHeight = rowHeight * periodCount;
+    final todayIndex = days.indexWhere((date) => _sameDate(date, today));
     final currentTimeOffset = showCurrentTimeLine && _containsToday(days, today)
         ? _timeOffset(currentMinute, rowHeight, startTimes, periodDuration)
         : null;
@@ -329,6 +470,22 @@ class _WeekGrid extends StatelessWidget {
 
           return Stack(
             children: [
+              if (todayIndex >= 0)
+                Positioned(
+                  left: timeRailWidth + todayIndex * dayWidth + 1,
+                  top: 0,
+                  bottom: 0,
+                  width: dayWidth - 2,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      key: const ValueKey('schedule-today-column'),
+                      decoration: BoxDecoration(
+                        color: colors.accentSoft.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                      ),
+                    ),
+                  ),
+                ),
               if (showGridLines)
                 for (var row = 1; row < periodCount; row++)
                   Positioned(
@@ -390,7 +547,7 @@ class _WeekGrid extends StatelessWidget {
                       showLocation: showLocation,
                       showTeacher: showTeacher,
                       textLayout: textLayout,
-                      onTap: () => onOpen(lesson),
+                      onTap: (origin) => onOpen(lesson, origin),
                     ),
                   ),
               if (currentTimeOffset != null) ...[
@@ -420,24 +577,6 @@ class _WeekGrid extends StatelessWidget {
                   ),
                 ),
               ],
-              if (_containsToday(days, today))
-                Positioned(
-                  left:
-                      timeRailWidth +
-                      days.indexWhere((date) => _sameDate(date, today)) *
-                          dayWidth +
-                      dayWidth / 2 -
-                      2,
-                  top: 5,
-                  child: Container(
-                    width: 4,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colors.accent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
             ],
           );
         },
