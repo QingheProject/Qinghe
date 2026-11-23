@@ -12,6 +12,8 @@ class LessonOccurrence {
     this.location = '',
     this.teacher = '',
     this.colorIndex = 0,
+    this.courseId = '',
+    this.ruleId = '',
   }) : assert(startPeriod <= endPeriod),
        assert(startMinute < endMinute);
 
@@ -24,6 +26,10 @@ class LessonOccurrence {
   final String location;
   final String teacher;
   final int colorIndex;
+
+  /// 所属课程与单条上课安排，用于从课表反查并编辑。
+  final String courseId;
+  final String ruleId;
 
   int get durationMinutes => endMinute - startMinute;
 

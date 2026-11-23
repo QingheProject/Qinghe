@@ -67,6 +67,8 @@ class TimetableRule {
       location: location,
       teacher: teacher,
       colorIndex: colorIndex,
+      courseId: courseId,
+      ruleId: id,
     );
   }
 

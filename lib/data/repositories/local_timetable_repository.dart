@@ -5,6 +5,7 @@ import 'package:qinghe_app/data/import/timetable_import.dart';
 import 'package:qinghe_app/data/import/timetable_import_preview.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/data/models/timetable.dart';
+import 'package:qinghe_app/data/models/timetable_rule.dart';
 import 'package:qinghe_app/data/repositories/timetable_source.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -80,6 +81,51 @@ class LocalTimetableRepository implements TimetableSource {
       table,
     ], table.id);
     _savedPreviews[preview] = true;
+  }
+
+  /// 修改单次上课安排：课程名同步到这门课的全部安排，
+  /// 地点与教师只作用于当前这一条。
+  Future<void> updateLesson({
+    required String courseId,
+    required String ruleId,
+    required String name,
+    required String location,
+    required String teacher,
+  }) async {
+    final table = active;
+    if (table == null) throw const FormatException('当前没有可编辑的课表。');
+    final courseName = name.trim();
+    if (courseName.isEmpty) throw const FormatException('课程名称不能为空。');
+    if (courseName.length > 40) throw const FormatException('课程名称不能超过 40 个字符。');
+
+    final updated = Timetable(
+      id: table.id,
+      config: table.config,
+      rules: [
+        for (final rule in table.rules)
+          if (rule.courseId != courseId)
+            rule
+          else
+            TimetableRule(
+              id: rule.id,
+              courseId: rule.courseId,
+              name: courseName,
+              weekday: rule.weekday,
+              weeks: rule.weeks,
+              startPeriod: rule.startPeriod,
+              endPeriod: rule.endPeriod,
+              location: rule.id == ruleId ? location.trim() : rule.location,
+              teacher: rule.id == ruleId ? teacher.trim() : rule.teacher,
+              type: rule.type,
+              sourceNote: rule.sourceNote,
+            ),
+      ],
+    );
+    await _write([
+      for (final previous in timetables)
+        if (previous.id != updated.id) previous,
+      updated,
+    ], updated.id);
   }
 
   Future<void> _write(List<Timetable> tables, String activeId) async {
