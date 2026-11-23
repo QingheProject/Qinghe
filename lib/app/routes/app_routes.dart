@@ -5,5 +5,6 @@ abstract final class AppRoutes {
   static const scheduleAppearance = '/schedule-appearance';
   static const studentProfile = '/student-profile';
   static const timetableImport = '/timetable-import';
+  static const jwxtImport = '/jwxt-import';
   static const shell = '/';
 }

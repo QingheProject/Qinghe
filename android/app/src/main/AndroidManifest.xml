@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 教务系统导入需要访问学校网站；其余功能保持离线可用。 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="qinghe_app"
         android:name="${applicationName}"

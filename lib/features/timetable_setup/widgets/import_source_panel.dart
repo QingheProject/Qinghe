@@ -8,20 +8,24 @@ import 'package:qinghe_app/data/import/timetable_import.dart';
 
 class ImportSourcePanel extends StatelessWidget {
   const ImportSourcePanel({
-    required this.school,
+    required this.schoolSubtitle,
     required this.fileType,
     required this.ruleCount,
     required this.onSelect,
     required this.onCopyTemplate,
     required this.onSchool,
     required this.onClear,
+    this.draftLabel,
     this.issue,
     super.key,
   });
 
-  final String school;
+  final String schoolSubtitle;
   final TimetableFileType? fileType;
   final int ruleCount;
+
+  /// 教务系统等非文件来源的名称，用于替换文件类型标签。
+  final String? draftLabel;
   final ValueChanged<TimetableFileType>? onSelect;
   final VoidCallback? onCopyTemplate;
   final VoidCallback? onSchool;
@@ -34,7 +38,7 @@ class ImportSourcePanel extends StatelessWidget {
     final colors = context.colors;
     final csv = _ImportChoice(
       icon: AppIcons.table,
-      title: 'CSV 模板',
+      title: 'CSV 文件',
       description: '表格课表',
       selected: fileType == TimetableFileType.csv,
       onTap: onSelect == null ? null : () => onSelect!(TimetableFileType.csv),
@@ -92,10 +96,10 @@ class ImportSourcePanel extends StatelessWidget {
           AppListRow(
             icon: AppIcons.school,
             title: '教务系统',
-            subtitle: school.isEmpty ? '请先选择学校' : '$school · 暂未适配',
+            subtitle: schoolSubtitle,
             onTap: onSchool,
           ),
-          if (fileType != null) ...[
+          if (fileType != null || draftLabel != null) ...[
             const SizedBox(height: AppSpace.xs),
             Semantics(
               liveRegion: true,
@@ -106,7 +110,7 @@ class ImportSourcePanel extends StatelessWidget {
                   dense: true,
                   leading: Icon(AppIcons.checkCircle, color: colors.accent),
                   title: Text(
-                    '${fileType!.name.toUpperCase()} · 已读取 $ruleCount 条安排',
+                    '${fileType?.name.toUpperCase() ?? draftLabel} · 已读取 $ruleCount 条安排',
                     style: text.bodyMedium,
                   ),
                   trailing: IconButton(

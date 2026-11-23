@@ -18,6 +18,7 @@ import 'package:qinghe_app/data/import/timetable_import_preview.dart';
 import 'package:qinghe_app/data/models/semester_config.dart';
 import 'package:qinghe_app/data/models/timetable.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
+import 'package:qinghe_app/data/sources/school_registry.dart';
 import 'package:qinghe_app/features/timetable_setup/widgets/import_preview_panel.dart';
 import 'package:qinghe_app/features/timetable_setup/widgets/import_source_panel.dart';
 import 'package:qinghe_app/features/timetable_setup/widgets/semester_fields.dart';
@@ -44,6 +45,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
   late SemesterConfig? _initialConfig = _config;
   TimetableImport? _draft;
   TimetableFileType? _fileType;
+  String? _sourceLabel;
   TimetableImportPreview? _preview;
   String? _fileIssue;
   String? _error;
@@ -104,6 +106,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
       setState(() {
         _draft = draft;
         _fileType = type;
+        _sourceLabel = null;
         _preview = null;
         _fileIssue = null;
         _error = null;
@@ -124,6 +127,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
   void _fileError(String message) => setState(() {
     _draft = null;
     _fileType = null;
+    _sourceLabel = null;
     _preview = null;
     _fileIssue = message;
     _error = null;
@@ -132,6 +136,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
   void _clearFile() => setState(() {
     _draft = null;
     _fileType = null;
+    _sourceLabel = null;
     _preview = null;
     _fileIssue = null;
     _error = null;
@@ -155,15 +160,43 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
     if (mounted) showAppToast(context, 'CSV 表头与示例已复制。');
   }
 
-  void _openSchool(String school) {
+  void _openSchool(String school) async {
     if (school.isEmpty && !widget.firstRun) {
       Get.toNamed<void>(AppRoutes.studentProfile);
-    } else {
+      return;
+    }
+    final source = SchoolRegistry.forSchool(school);
+    if (source == null || !source.isAvailable) {
       showAppToast(
         context,
         school.isEmpty ? '请返回上一步选择学校。' : '该学校尚未开放教务导入，请使用 CSV 或 JSON。',
       );
+      return;
     }
+    // 路由按 void 注册，这里取通用返回值再自行校验，避免与路由泛型耦合。
+    final result = await Get.toNamed<Object?>(
+      AppRoutes.jwxtImport,
+      arguments: source,
+    );
+    if (!mounted || result is! TimetableImport) return;
+    setState(() {
+      _draft = result;
+      _fileType = null;
+      _sourceLabel = '教务系统';
+      _preview = null;
+      _fileIssue = null;
+      _error = null;
+      _acceptOverlap = false;
+    });
+  }
+
+  String _schoolSubtitle(String school) {
+    if (school.isEmpty) return '请先选择学校';
+    final source = SchoolRegistry.forSchool(school);
+    if (source == null) return '$school · 暂未适配';
+    if (!source.isVerified) return '$school · 正在验证';
+    if (!source.runsOnThisPlatform) return '$school · 当前平台暂未开放';
+    return '$school · 读取学校课表';
   }
 
   TimetableImportPreview _buildPreview() {
@@ -225,8 +258,8 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
     final fileIssue = _fileIssue;
     final text = Theme.of(context).textTheme;
     return SetupPage(
-      title: '课表导入',
-      description: '选择课表文件，核对学期与节次后再确认导入。',
+      title: widget.firstRun ? '课表导入' : '课表导入与配置',
+      description: '选择课表文件或从教务系统导入，核对学期与节次后再确认导入。',
       step: widget.firstRun ? 1 : null,
       actions: widget.firstRun
           ? [
@@ -264,8 +297,9 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
         Obx(() {
           final school = _profile.school;
           return ImportSourcePanel(
-            school: school,
+            schoolSubtitle: _schoolSubtitle(school),
             fileType: _fileType,
+            draftLabel: _fileType == null ? _sourceLabel : null,
             ruleCount: draft?.rules.length ?? 0,
             onSelect: _busy ? null : _choose,
             onCopyTemplate: _busy ? null : _copyTemplate,
