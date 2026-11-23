@@ -1,5 +1,6 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
@@ -14,7 +15,7 @@ class AppearancePage extends GetView<AppearanceController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('外观与布局'), centerTitle: true),
+      appBar: AppBar(title: const Text('外观'), centerTitle: true),
       body: SafeArea(
         top: false,
         child: Obx(
@@ -31,21 +32,27 @@ class AppearancePage extends GetView<AppearanceController> {
                         title: '主题',
                         selected: controller.themeMode.value,
                         onChanged: controller.setThemeMode,
-                        options: const [
+                        options: [
                           _AppearanceOption(
                             value: AppearanceThemeMode.system,
                             label: '跟随系统',
-                            preview: _ThemePreview.system(),
+                            preview: _ThemePreview.system(
+                              controller.accentTone.value,
+                            ),
                           ),
                           _AppearanceOption(
                             value: AppearanceThemeMode.light,
                             label: '浅色',
-                            preview: _ThemePreview.light(),
+                            preview: _ThemePreview.light(
+                              controller.accentTone.value,
+                            ),
                           ),
                           _AppearanceOption(
                             value: AppearanceThemeMode.dark,
                             label: '深色',
-                            preview: _ThemePreview.dark(),
+                            preview: _ThemePreview.dark(
+                              controller.accentTone.value,
+                            ),
                           ),
                         ],
                       ),
@@ -84,56 +91,6 @@ class AppearancePage extends GetView<AppearanceController> {
                             value: AppAccentTone.monochrome,
                             label: '黑白',
                             preview: _AccentPreview(AppAccentTone.monochrome),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      _ChoiceSection<BottomBarStyle>(
-                        title: '底栏形态',
-                        selected: controller.bottomBarStyle.value,
-                        onChanged: controller.setBottomBarStyle,
-                        options: const [
-                          _AppearanceOption(
-                            value: BottomBarStyle.floating,
-                            label: '悬浮',
-                            preview: _BarShapePreview(floating: true),
-                          ),
-                          _AppearanceOption(
-                            value: BottomBarStyle.fixed,
-                            label: '贴底',
-                            preview: _BarShapePreview(floating: false),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      _ChoiceSection<NavigationContentStyle>(
-                        title: '底栏内容',
-                        selected: controller.navigationContentStyle.value,
-                        onChanged: controller.setNavigationContentStyle,
-                        options: const [
-                          _AppearanceOption(
-                            value: NavigationContentStyle.icons,
-                            label: '仅图标',
-                            preview: _BarContentPreview(
-                              showIcons: true,
-                              showLabels: false,
-                            ),
-                          ),
-                          _AppearanceOption(
-                            value: NavigationContentStyle.labels,
-                            label: '仅文字',
-                            preview: _BarContentPreview(
-                              showIcons: false,
-                              showLabels: true,
-                            ),
-                          ),
-                          _AppearanceOption(
-                            value: NavigationContentStyle.iconsAndLabels,
-                            label: '图标和文字',
-                            preview: _BarContentPreview(
-                              showIcons: true,
-                              showLabels: true,
-                            ),
                           ),
                         ],
                       ),
@@ -176,6 +133,14 @@ class _ChoiceSection<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labelSize = Theme.of(context).textTheme.labelSmall!.fontSize!;
+    final longestLabel = options
+        .map((option) => option.label.length)
+        .reduce(math.max);
+    final minWidth = math.max(
+      84.0,
+      MediaQuery.textScalerOf(context).scale(labelSize) * longestLabel + 20,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -186,9 +151,15 @@ class _ChoiceSection<T> extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             const gap = AppSpace.sm;
-            final columnCount = options.length > 3 && constraints.maxWidth < 560
+            final preferredColumns =
+                options.length > 3 && constraints.maxWidth < 560
                 ? 3
                 : options.length;
+            final fittingColumns =
+                ((constraints.maxWidth + gap) / (minWidth + gap)).floor();
+            final columnCount = fittingColumns >= preferredColumns
+                ? preferredColumns
+                : fittingColumns.clamp(1, 3);
             final width =
                 (constraints.maxWidth - gap * (columnCount - 1)) / columnCount;
             return Wrap(
@@ -238,7 +209,7 @@ class _OptionCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: AppMotion.of(context, AppMotion.medium),
         padding: const EdgeInsets.fromLTRB(8, 10, 8, 9),
-        decoration: BoxDecoration(
+        foregroundDecoration: BoxDecoration(
           border: Border.all(
             color: selected ? colors.accent : colors.line,
             width: selected ? 2 : 1,
@@ -247,7 +218,10 @@ class _OptionCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            SizedBox(height: 54, child: Center(child: child)),
+            SizedBox(
+              height: 54,
+              child: FittedBox(fit: BoxFit.scaleDown, child: child),
+            ),
             const SizedBox(height: 6),
             Text(
               label,
@@ -271,7 +245,9 @@ class _AccentPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.lightFor(tone);
+    final palette = Theme.of(context).brightness == Brightness.dark
+        ? AppColors.darkFor(tone)
+        : AppColors.lightFor(tone);
     return Container(
       width: 68,
       height: 48,
@@ -307,10 +283,11 @@ class _AccentPreview extends StatelessWidget {
 }
 
 class _ThemePreview extends StatelessWidget {
-  const _ThemePreview.light() : light = true, split = false;
-  const _ThemePreview.dark() : light = false, split = false;
-  const _ThemePreview.system() : light = true, split = true;
+  const _ThemePreview.light(this.tone) : light = true, split = false;
+  const _ThemePreview.dark(this.tone) : light = false, split = false;
+  const _ThemePreview.system(this.tone) : light = true, split = true;
 
+  final AppAccentTone tone;
   final bool light;
   final bool split;
 
@@ -319,28 +296,33 @@ class _ThemePreview extends StatelessWidget {
     if (split) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(9),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _ThemeSwatch(light: true, half: true),
-            _ThemeSwatch(light: false, half: true),
+            _ThemeSwatch(light: true, half: true, tone: tone),
+            _ThemeSwatch(light: false, half: true, tone: tone),
           ],
         ),
       );
     }
-    return _ThemeSwatch(light: light);
+    return _ThemeSwatch(light: light, tone: tone);
   }
 }
 
 class _ThemeSwatch extends StatelessWidget {
-  const _ThemeSwatch({required this.light, this.half = false});
+  const _ThemeSwatch({
+    required this.light,
+    required this.tone,
+    this.half = false,
+  });
 
   final bool light;
+  final AppAccentTone tone;
   final bool half;
 
   @override
   Widget build(BuildContext context) {
-    final palette = light ? AppColors.light : AppColors.dark;
+    final palette = light ? AppColors.lightFor(tone) : AppColors.darkFor(tone);
     return Container(
       width: half ? 34 : 68,
       height: 48,
@@ -368,89 +350,6 @@ class _ThemeSwatch extends StatelessWidget {
               borderRadius: BorderRadius.circular(5),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BarShapePreview extends StatelessWidget {
-  const _BarShapePreview({required this.floating});
-
-  final bool floating;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      width: 78,
-      height: 48,
-      decoration: BoxDecoration(
-        color: colors.canvas,
-        borderRadius: BorderRadius.circular(9),
-      ),
-      alignment: Alignment.bottomCenter,
-      padding: EdgeInsets.fromLTRB(floating ? 8 : 0, 0, floating ? 8 : 0, 5),
-      child: Container(
-        height: 16,
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border.all(color: colors.line),
-          borderRadius: floating
-              ? BorderRadius.circular(9)
-              : const BorderRadius.vertical(top: Radius.circular(3)),
-        ),
-      ),
-    );
-  }
-}
-
-class _BarContentPreview extends StatelessWidget {
-  const _BarContentPreview({required this.showIcons, required this.showLabels});
-
-  final bool showIcons;
-  final bool showLabels;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      width: 78,
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        color: colors.surfaceMuted,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          for (var index = 0; index < 3; index++)
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (showIcons)
-                  Icon(
-                    index == 0
-                        ? AppIcons.home
-                        : index == 1
-                        ? AppIcons.calendarFill
-                        : AppIcons.user,
-                    size: 10,
-                    color: index == 1 ? colors.accent : colors.inkFaint,
-                  ),
-                if (showIcons && showLabels) const SizedBox(height: 2),
-                if (showLabels)
-                  Container(
-                    width: 13,
-                    height: 3,
-                    decoration: BoxDecoration(
-                      color: index == 1 ? colors.accent : colors.inkFaint,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-              ],
-            ),
         ],
       ),
     );

@@ -5,10 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum AppearanceThemeMode { system, light, dark }
 
-enum BottomBarStyle { floating, fixed }
-
-enum NavigationContentStyle { icons, labels, iconsAndLabels }
-
 enum ScheduleTextLayout { top, center, bottom, spaced }
 
 enum ScheduleTimeAlignment { top, center, bottom }
@@ -19,8 +15,6 @@ class AppearanceController extends GetxService {
   static const _themeKey = 'appearance_theme';
   static const _accentToneKey = 'appearance_accent_tone';
   static const _courseColorSchemeKey = 'course_color_scheme';
-  static const _bottomBarKey = 'bottom_bar_style';
-  static const _navigationContentKey = 'navigation_content_style';
   static const _scheduleRowHeightKey = 'schedule_row_height';
   static const _scheduleCardWidthKey = 'schedule_card_width';
   static const _scheduleCardInsetKey = 'schedule_card_inset';
@@ -60,8 +54,6 @@ class AppearanceController extends GetxService {
   final themeMode = AppearanceThemeMode.system.obs;
   final accentTone = AppAccentTone.qinghe.obs;
   final courseColorScheme = CourseColorScheme.qinghe.obs;
-  final bottomBarStyle = BottomBarStyle.floating.obs;
-  final navigationContentStyle = NavigationContentStyle.iconsAndLabels.obs;
   final scheduleRowHeight = 52.0.obs;
   final scheduleCardWidth = 1.0.obs;
   final scheduleCardInset = 2.0.obs;
@@ -100,16 +92,6 @@ class AppearanceController extends GetxService {
       CourseColorScheme.values,
       preferences.getString(_courseColorSchemeKey),
       CourseColorScheme.qinghe,
-    );
-    bottomBarStyle.value = _readEnum(
-      BottomBarStyle.values,
-      preferences.getString(_bottomBarKey),
-      BottomBarStyle.floating,
-    );
-    navigationContentStyle.value = _readEnum(
-      NavigationContentStyle.values,
-      preferences.getString(_navigationContentKey),
-      NavigationContentStyle.iconsAndLabels,
     );
     scheduleRowHeight.value = _readDouble(
       preferences,
@@ -228,18 +210,6 @@ class AppearanceController extends GetxService {
     courseColorScheme.value = value;
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_courseColorSchemeKey, value.name);
-  }
-
-  Future<void> setBottomBarStyle(BottomBarStyle value) async {
-    bottomBarStyle.value = value;
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(_bottomBarKey, value.name);
-  }
-
-  Future<void> setNavigationContentStyle(NavigationContentStyle value) async {
-    navigationContentStyle.value = value;
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(_navigationContentKey, value.name);
   }
 
   void previewScheduleRowHeight(double value) {

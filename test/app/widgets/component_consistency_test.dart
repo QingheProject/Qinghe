@@ -37,6 +37,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(tester.getSize(find.byType(AppButton)).height, greaterThan(52));
+    final ink = find.descendant(
+      of: find.byType(AppButton),
+      matching: find.byType(InkWell),
+    );
+    expect(
+      Theme.of(tester.element(ink)).splashFactory,
+      InkSparkle.splashFactory,
+    );
+    expect(tester.widget<InkWell>(ink).splashColor?.a, greaterThan(0));
   });
 
   testWidgets('课程卡片能通过辅助功能点击入口打开', (tester) async {
@@ -72,7 +81,7 @@ void main() {
                   showLocation: true,
                   showTeacher: true,
                   textLayout: ScheduleTextLayout.center,
-                  onTap: () => taps++,
+                  onTap: (_) => taps++,
                 ),
               ),
             ),

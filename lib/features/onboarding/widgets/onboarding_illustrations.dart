@@ -67,10 +67,23 @@ class WeekGridIllustration extends StatelessWidget {
               for (var day = 0; day < 7; day++)
                 Expanded(
                   child: Center(
-                    child: Text(
-                      _days[day],
-                      style: text.labelSmall?.copyWith(
-                        color: day == _today ? colors.accent : colors.inkFaint,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: day == _today
+                          ? BoxDecoration(
+                              color: colors.accentSoft,
+                              borderRadius: BorderRadius.circular(AppRadius.xs),
+                            )
+                          : null,
+                      child: Text(
+                        _days[day],
+                        style: text.labelSmall?.copyWith(
+                          color: day == _today
+                              ? colors.accent
+                              : colors.inkMuted,
+                        ),
                       ),
                     ),
                   ),
@@ -89,21 +102,6 @@ class WeekGridIllustration extends StatelessWidget {
                     final t = animation.value;
                     return Stack(
                       children: [
-                        Positioned(
-                          left: gutter + _today * colWidth,
-                          width: colWidth,
-                          top: 0,
-                          bottom: 0,
-                          child: Opacity(
-                            opacity: AppMotion.interval(t, 0.1, 0.4),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: colors.accentSoft.withValues(alpha: 0.7),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
-                        ),
                         for (var row = 1; row < _rows; row++)
                           Positioned(
                             left: gutter,
