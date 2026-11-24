@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:qinghe_app/data/import/jwxt/jwxt_ids.dart';
 import 'package:qinghe_app/data/models/semester_config.dart';
 import 'package:qinghe_app/data/models/timetable_rule.dart';
 
@@ -192,17 +193,5 @@ class JwxtTimetableParse {
   }
 
   /// FNV-1a 64 位，用于生成稳定且不暴露内容的编号。
-  ///
-  /// 高 32 位与低 32 位分别格式化：Dart 的整数是有符号 64 位，
-  /// 直接对整个值取十六进制会带上负号，长度不固定。
-  static String _fingerprint(String input) {
-    var hash = 0xcbf29ce484222325;
-    for (final unit in utf8.encode(input)) {
-      hash = (hash ^ unit) * 0x100000001b3;
-    }
-    final high = (hash >> 32) & 0xffffffff;
-    final low = hash & 0xffffffff;
-    return high.toRadixString(16).padLeft(8, '0') +
-        low.toRadixString(16).padLeft(8, '0');
-  }
+  static String _fingerprint(String input) => jwxtFingerprint(input);
 }

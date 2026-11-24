@@ -1,6 +1,12 @@
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/data/models/semester_config.dart';
 
+/// 课程配色下标：由课程编号算出的稳定散列，同一门课在课表里颜色一致。
+int courseColorIndex(String courseId) => courseId.codeUnits.fold(
+  0,
+  (hash, unit) => ((hash * 31) + unit) & 0x7fffffff,
+);
+
 class TimetableRule {
   TimetableRule({
     required this.id,
@@ -52,10 +58,7 @@ class TimetableRule {
   }
 
   LessonOccurrence lessonFor(SemesterConfig semester, DateTime day) {
-    final colorIndex = courseId.codeUnits.fold(
-      0,
-      (hash, unit) => ((hash * 31) + unit) & 0x7fffffff,
-    );
+    final colorIndex = courseColorIndex(courseId);
     return LessonOccurrence(
       id: '${day.year}-${day.month}-${day.day}:$id',
       courseName: name,

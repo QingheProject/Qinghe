@@ -111,6 +111,39 @@ $_prelude
 ''';
   }
 
+  /// 读取指定学年与学期的考试安排。
+  ///
+  /// 与课表使用同一份学年与学期编码。正方把分页与排序参数放在请求体里，
+  /// 因此这里同时带上网格分页参数；某所学校没有配置考试接口时不做请求。
+  static String exams(
+    SchoolSource source, {
+    required String year,
+    required String term,
+  }) {
+    _requireCode(year);
+    _requireCode(term);
+    final search = [
+      for (final entry in source.examDataQuery.entries)
+        '${entry.key}=${Uri.encodeQueryComponent(entry.value)}',
+    ].join('&');
+    final path = search.isEmpty
+        ? source.examDataPath
+        : '${source.examDataPath}?$search';
+    return '''
+(function () {
+$_prelude
+  var body = "xnm=" + encodeURIComponent("$year") +
+             "&xqm=" + encodeURIComponent("$term") +
+             "&_search=false&queryModel.showCount=200" +
+             "&queryModel.currentPage=1" +
+             "&queryModel.sortName=&queryModel.sortOrder=asc";
+  qingheRequest("POST", "$path", body, function (text) {
+    qinghePost({ kind: "exams", body: text });
+  });
+})();
+''';
+  }
+
   static void _requireCode(String value) {
     if (!RegExp(r'^\d+$').hasMatch(value)) {
       throw const FormatException('学年与学期编码应为数字。');

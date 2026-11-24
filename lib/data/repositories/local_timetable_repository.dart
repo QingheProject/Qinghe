@@ -5,6 +5,7 @@ import 'package:qinghe_app/data/import/timetable_import.dart';
 import 'package:qinghe_app/data/import/timetable_import_preview.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/data/models/timetable.dart';
+import 'package:qinghe_app/data/models/timetable_exam.dart';
 import 'package:qinghe_app/data/models/timetable_rule.dart';
 import 'package:qinghe_app/data/repositories/timetable_source.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,10 +62,28 @@ class LocalTimetableRepository implements TimetableSource {
       id: item['id'] as String,
       config: config,
       rules: parsed.rules,
+      exams: _restoreExams(item['exams']),
     );
   }
 
-  Future<void> save(TimetableImportPreview preview) async {
+  /// 旧版本保存的课表没有考试字段，按空列表处理。
+  static List<TimetableExam> _restoreExams(Object? input) {
+    if (input == null) return const [];
+    if (input is! List) throw const FormatException('考试安排应为数组。');
+    return [
+      for (final exam in input)
+        if (exam is Map<String, dynamic>)
+          TimetableExam.fromJson(exam)
+        else
+          throw const FormatException('考试安排格式无效。'),
+    ];
+  }
+
+  /// 保存导入结果；[exams] 为空时保留原有考试安排。
+  Future<void> save(
+    TimetableImportPreview preview, {
+    List<TimetableExam>? exams,
+  }) async {
     if (_savedPreviews[preview] == true) return;
     final base = preview.base;
     if (base != null && !identical(find(base.id), base)) {
@@ -74,6 +93,7 @@ class LocalTimetableRepository implements TimetableSource {
       id: base?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
       config: preview.config,
       rules: preview.rules,
+      exams: exams ?? base?.exams ?? const [],
     );
     await _write([
       for (final previous in timetables)
@@ -81,6 +101,23 @@ class LocalTimetableRepository implements TimetableSource {
       table,
     ], table.id);
     _savedPreviews[preview] = true;
+  }
+
+  /// 只更新当前学期的考试安排，不动上课安排。
+  Future<void> replaceExams(List<TimetableExam> exams) async {
+    final table = active;
+    if (table == null) throw const FormatException('当前没有可更新的课表。');
+    final updated = Timetable(
+      id: table.id,
+      config: table.config,
+      rules: table.rules,
+      exams: exams,
+    );
+    await _write([
+      for (final previous in timetables)
+        if (previous.id != updated.id) previous,
+      updated,
+    ], updated.id);
   }
 
   /// 修改单次上课安排：课程名同步到这门课的全部安排，
@@ -120,6 +157,7 @@ class LocalTimetableRepository implements TimetableSource {
               sourceNote: rule.sourceNote,
             ),
       ],
+      exams: table.exams,
     );
     await _write([
       for (final previous in timetables)
@@ -143,6 +181,7 @@ class LocalTimetableRepository implements TimetableSource {
               {
                 'id': table.id,
                 ...TimetableImport(table.rules, config: table.config).toJson(),
+                'exams': [for (final exam in table.exams) exam.toJson()],
               },
           ],
         }),
