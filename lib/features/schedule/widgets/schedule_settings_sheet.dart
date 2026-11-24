@@ -56,8 +56,8 @@ class _SettingsSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
+            // 抽屉标题已经写明「课表设置」，这里不再重复写「课表」小标题。
             AppListGroup(
-              title: '课表',
               children: [
                 AppListRow(
                   key: const ValueKey('schedule-settings-appearance'),

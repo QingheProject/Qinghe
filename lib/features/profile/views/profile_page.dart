@@ -1,17 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
-import 'package:qinghe_app/app/student_profile_controller.dart';
-import 'package:qinghe_app/app/theme/app_colors.dart';
-import 'package:qinghe_app/app/theme/app_motion.dart';
-import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/app_tag.dart';
-import 'package:qinghe_app/app/widgets/pressable.dart';
-import 'package:qinghe_app/app/widgets/student_avatar.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
-import 'package:qinghe_app/features/profile/widgets/profile_editor_sheet.dart';
 import 'package:qinghe_app/features/profile/widgets/semester_progress_card.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
 
@@ -22,7 +15,6 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     void soon(String feature) => showAppToast(context, '$feature即将推出');
     const soonTag = AppTag(label: '即将推出', tone: AppTagTone.faint);
-    final profile = Get.find<StudentProfileController>();
     final timetables = Get.find<LocalTimetableRepository>();
 
     return SafeArea(
@@ -40,16 +32,6 @@ class ProfilePage extends StatelessWidget {
             ),
             children: [
               const AppPageHeader(title: '我的'),
-              const SizedBox(height: 24),
-              Obx(
-                () => _ProfileCard(
-                  nickname: profile.nickname,
-                  school: profile.school,
-                  avatarIcon: profile.avatarIcon,
-                  avatarColor: profile.avatarColor,
-                  onTap: () => showProfileEditorSheet(context),
-                ),
-              ),
               const SizedBox(height: 20),
               Obx(() {
                 final timetable = timetables.active;
@@ -92,90 +74,6 @@ class ProfilePage extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({
-    required this.nickname,
-    required this.school,
-    required this.avatarIcon,
-    required this.avatarColor,
-    required this.onTap,
-  });
-
-  final String nickname;
-  final String school;
-  final int avatarIcon;
-  final int avatarColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final text = Theme.of(context).textTheme;
-    final hasName = nickname.trim().isNotEmpty;
-
-    return Pressable(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(AppRadius.xl),
-      semanticLabel: '编辑个人信息',
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpace.lg),
-        child: Row(
-          children: [
-            StudentAvatar(
-              iconIndex: avatarIcon,
-              colorIndex: avatarColor,
-              size: 58,
-              onTap: onTap,
-            ),
-            const SizedBox(width: AppSpace.lg),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hasName ? nickname : '未填写昵称',
-                    style: text.titleMedium?.copyWith(
-                      color: hasName ? colors.ink : colors.inkMuted,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(AppIcons.school, size: 14, color: colors.inkFaint),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          school.trim().isEmpty ? '填写学校名称' : school,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.bodySmall,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpace.sm),
-            AnimatedContainer(
-              duration: AppMotion.of(context, AppMotion.fast),
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: colors.surfaceMuted,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(AppIcons.edit, color: colors.inkMuted, size: 17),
-            ),
-          ],
         ),
       ),
     );

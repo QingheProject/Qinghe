@@ -166,9 +166,10 @@ class AppEmptyState extends StatelessWidget {
 
 /// 带标题的列表分组：整组位于一块圆角底色上，行之间以细分隔线隔开。
 class AppListGroup extends StatelessWidget {
-  const AppListGroup({required this.title, required this.children, super.key});
+  const AppListGroup({this.title, required this.children, super.key});
 
-  final String title;
+  /// 分组小标题；为空时不占位，避免在已有标题的抽屉里重复。
+  final String? title;
   final List<Widget> children;
 
   @override
@@ -177,10 +178,11 @@ class AppListGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: AppSpace.sm),
-          child: Text(title, style: Theme.of(context).textTheme.labelMedium),
-        ),
+        if (title != null && title!.trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: AppSpace.sm),
+            child: Text(title!, style: Theme.of(context).textTheme.labelMedium),
+          ),
         Material(
           color: colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),

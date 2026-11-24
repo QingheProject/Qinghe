@@ -197,6 +197,10 @@ void main() {
     expect(settingsRect.left, greaterThan(weekButtonRect.right));
     expect(nameRect.top, greaterThan(weekRect.bottom));
     expect(nameRect.left, closeTo(weekRect.left, 2));
+    // 右侧两个图标按钮在两行文字之间竖直居中。
+    final blockCenter = (weekRect.top + nameRect.bottom) / 2;
+    expect(weekButtonRect.center.dy, closeTo(blockCenter, 6));
+    expect(settingsRect.center.dy, closeTo(weekButtonRect.center.dy, 1));
     // 周次比课表名称更大，是这块的主标题。
     expect(weekLabel.style!.fontSize!, greaterThan(heading.style!.fontSize!));
     // 日期小标题已经移除。

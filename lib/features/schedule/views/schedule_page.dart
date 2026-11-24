@@ -122,7 +122,7 @@ class SchedulePage extends GetView<ScheduleController> {
             constraints: const BoxConstraints(maxWidth: 960),
             child: Column(
               children: [
-                const SizedBox(height: AppSpace.xs),
+                const SizedBox(height: 2),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: _ScheduleHeading(
@@ -134,7 +134,7 @@ class SchedulePage extends GetView<ScheduleController> {
                     onToday: () => _shiftWeek(controller.goToCurrentWeek),
                   ),
                 ),
-                const SizedBox(height: AppSpace.sm),
+                const SizedBox(height: AppSpace.xs),
                 _WeekdayHeader(
                   days: days,
                   today: controller.today,
@@ -309,62 +309,69 @@ class _ScheduleHeading extends StatelessWidget {
     final name = (title ?? '').trim();
     final weekLabel = teachingWeek == null ? '学期外' : '第$teachingWeek周';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // 周次在左上角，字号比课表名称大一级。
-            Expanded(
-              child: Text(
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 周次在左上角，字号比课表名称大一级。
+              Text(
                 weekLabel,
                 key: const ValueKey('schedule-week-label'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: text.titleLarge?.copyWith(
                   color: colors.ink,
+                  height: 1.15,
                   fontWeight: FontWeight.w700,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
-            ),
-            ScheduleWeekButton(onTap: onWeek),
-            const SizedBox(width: AppSpace.xs),
-            Tooltip(
-              message: '课表设置',
-              child: Pressable(
-                key: const ValueKey('schedule-settings-button'),
-                onTap: onSettings,
-                color: colors.surfaceMuted,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                semanticLabel: '课表设置',
-                splashColor: colors.ink.withValues(alpha: 0.08),
-                child: SizedBox(
-                  width: 34,
-                  height: 34,
-                  child: Icon(AppIcons.settings, size: 17, color: colors.ink),
-                ),
+              const SizedBox(height: 1),
+              Row(
+                children: [
+                  // 课表名称紧跟在周次下面。
+                  Expanded(
+                    child: Text(
+                      name.isEmpty ? '我的课表' : name,
+                      key: const ValueKey('schedule-heading'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: text.bodySmall?.copyWith(
+                        color: colors.inkMuted,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpace.sm),
+                  ScheduleTodayButton(visible: !isCurrentWeek, onTap: onToday),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 2),
-        Row(
-          children: [
-            // 课表名称紧跟在周次下面。
-            Expanded(
-              child: Text(
-                name.isEmpty ? '我的课表' : name,
-                key: const ValueKey('schedule-heading'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: text.bodyMedium?.copyWith(color: colors.inkMuted),
-              ),
+        const SizedBox(width: AppSpace.sm),
+        // 右侧两个图标按钮在两行文字之间竖直居中。
+        ScheduleWeekButton(onTap: onWeek),
+        const SizedBox(width: AppSpace.xs),
+        Tooltip(
+          message: '课表设置',
+          child: Pressable(
+            key: const ValueKey('schedule-settings-button'),
+            onTap: onSettings,
+            color: colors.surfaceMuted,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            semanticLabel: '课表设置',
+            splashColor: colors.ink.withValues(alpha: 0.08),
+            child: SizedBox(
+              width: 34,
+              height: 34,
+              child: Icon(AppIcons.settings, size: 17, color: colors.ink),
             ),
-            const SizedBox(width: AppSpace.sm),
-            ScheduleTodayButton(visible: !isCurrentWeek, onTap: onToday),
-          ],
+          ),
         ),
       ],
     );
