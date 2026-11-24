@@ -34,6 +34,18 @@ final _timetableBody = jsonEncode({
   ],
 });
 
+final _examBody = jsonEncode({
+  'items': [
+    {
+      'kcmc': '示例课程',
+      'kssj': '2027-01-12 09:00-11:00',
+      'cdmc': '示例考场',
+      'zwh': '12',
+      'ksfsmc': '闭卷',
+    },
+  ],
+});
+
 class _FakeBrowser implements JwxtBrowser {
   _FakeBrowser({required this.onMessage});
 
@@ -86,14 +98,46 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(browser.scripts.last, contains('xskbcxMobile_cxXsKb.html'));
     browser.reply({'kind': 'timetable', 'body': _timetableBody});
+    await Future<void>.delayed(Duration.zero);
+    // 课表读到后会顺带读取考试，考试失败也不影响课表。
+    expect(browser.scripts.last, contains('kscx_cxXsksxxIndex.html'));
+    browser.reply({'kind': 'exams', 'body': _examBody});
     await readingTimetable;
 
     expect(controller.stage.value, JwxtImportStage.fetched);
     expect(controller.skipped, isEmpty);
     final draft = controller.takeDraft();
     expect(draft, isNotNull);
-    expect(draft!.rules.single.name, '示例课程');
-    expect(draft.rules.single.weekday, 1);
+    expect(draft!.table.rules.single.name, '示例课程');
+    expect(draft.table.rules.single.weekday, 1);
+    expect(draft.exams.single.location, '示例考场');
+  });
+
+  test('考试读取失败时课表仍可导入，并记录考试原因', () async {
+    late _FakeBrowser browser;
+    final controller = JwxtImportController(swustSource);
+    browser = _FakeBrowser(onMessage: controller.handleMessage);
+    controller.attach(browser);
+
+    await controller.begin();
+    final readingSemesters = controller.readSemesters();
+    await Future<void>.delayed(Duration.zero);
+    browser.reply({'kind': 'semesters', 'html': _semesters});
+    await readingSemesters;
+
+    final readingTimetable = controller.readTimetable();
+    await Future<void>.delayed(Duration.zero);
+    browser.reply({'kind': 'timetable', 'body': _timetableBody});
+    await Future<void>.delayed(Duration.zero);
+    browser.reply({'kind': 'exams', 'body': '<html>登录页</html>'});
+    await readingTimetable;
+
+    expect(controller.stage.value, JwxtImportStage.fetched);
+    expect(controller.examResult.value, isNull);
+    expect(controller.examIssue.value, contains('不是考试数据'));
+    final draft = controller.takeDraft();
+    expect(draft?.table.rules, hasLength(1));
+    expect(draft?.exams, isEmpty);
   });
 
   test('页面请求失败时停在失败阶段并给出提示', () async {
@@ -143,8 +187,11 @@ void main() {
     await tester.pump();
     browser.reply({'kind': 'timetable', 'body': _timetableBody});
     await tester.pump();
+    browser.reply({'kind': 'exams', 'body': _examBody});
+    await tester.pump();
 
     expect(find.text('已读取 1 条上课安排'), findsOneWidget);
+    expect(find.text('考试信息 1 场'), findsOneWidget);
     expect(find.text('使用这份课表'), findsOneWidget);
   });
 }

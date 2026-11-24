@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:get/get.dart';
+import 'package:qinghe_app/data/import/jwxt/jwxt_exam_parser.dart';
+import 'package:qinghe_app/data/import/jwxt/jwxt_import_draft.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_kb_parser.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_scripts.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_semester_options.dart';
@@ -16,6 +18,7 @@ enum JwxtImportStage {
   readingSemesters,
   choosingSemester,
   readingTimetable,
+  readingExams,
   fetched,
   failed,
 }
@@ -36,6 +39,11 @@ class JwxtImportController extends GetxController {
   final skipped = <String>[].obs;
   final result = Rx<JwxtTimetableParse?>(null);
 
+  /// 考试读取结果；读取失败时为空，原因放在 [examIssue]。
+  final examResult = Rx<JwxtExamParse?>(null);
+  final examIssue = ''.obs;
+  final examSkipped = <String>[].obs;
+
   JwxtBrowser? _browser;
   Completer<Map<String, dynamic>>? _pending;
 
@@ -47,7 +55,8 @@ class JwxtImportController extends GetxController {
   bool get isBusy =>
       stage.value == JwxtImportStage.opening ||
       stage.value == JwxtImportStage.readingSemesters ||
-      stage.value == JwxtImportStage.readingTimetable;
+      stage.value == JwxtImportStage.readingTimetable ||
+      stage.value == JwxtImportStage.readingExams;
 
   bool get canReadTimetable =>
       !isBusy &&
@@ -137,6 +146,8 @@ class JwxtImportController extends GetxController {
       );
       result.value = parsed;
       skipped.assignAll(parsed.skipped);
+      stage.value = JwxtImportStage.readingExams;
+      await _readExams();
       stage.value = JwxtImportStage.fetched;
     } on FormatException catch (failure) {
       _fail(failure.message);
@@ -147,11 +158,57 @@ class JwxtImportController extends GetxController {
     }
   }
 
-  /// 把读到的课表交给现有的导入预览流程。
-  TimetableImport? takeDraft() {
+  /// 读取考试安排。
+  ///
+  /// 考试是课表的补充信息：读取失败只记录原因，不影响已经读到的上课安排。
+  Future<void> _readExams() async {
+    examResult.value = null;
+    examIssue.value = '';
+    examSkipped.clear();
+    if (!source.hasExams) return;
+    try {
+      final reply = await _request(
+        JwxtScripts.exams(source, year: year.value, term: term.value),
+      );
+      if (reply['kind'] != 'exams') {
+        throw const FormatException('教务系统没有返回考试数据。');
+      }
+      final parsed = JwxtExamParse.parse(
+        '${reply['body'] ?? ''}',
+        semesterLabel: semesterLabel,
+      );
+      examResult.value = parsed;
+      examSkipped.assignAll(parsed.skipped);
+    } on FormatException catch (failure) {
+      examIssue.value = failure.message;
+    } on TimeoutException {
+      examIssue.value = '读取考试信息超时，可稍后再试。';
+    } on Exception {
+      examIssue.value = '读取考试信息失败，可稍后再试。';
+    }
+  }
+
+  /// 重新单独读取考试安排，用于课表已导入后补考表。
+  Future<void> readExamsOnly() async {
+    if (isBusy || !source.hasExams) return;
+    stage.value = JwxtImportStage.readingExams;
+    try {
+      await _readExams();
+    } finally {
+      stage.value = JwxtImportStage.fetched;
+    }
+  }
+
+  /// 把读到的课表与考试交给现有的导入预览流程。
+  JwxtImportDraft? takeDraft() {
     final parsed = result.value;
     if (parsed == null) return null;
-    return TimetableImport(parsed.rules);
+    return JwxtImportDraft(
+      table: TimetableImport(parsed.rules),
+      exams: examResult.value?.exams ?? const [],
+      examIssue: examIssue.value,
+      examSkipped: examSkipped,
+    );
   }
 
   /// WebView 回传的消息入口。

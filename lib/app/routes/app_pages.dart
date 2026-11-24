@@ -2,9 +2,12 @@ import 'package:get/get.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/data/sources/school_source.dart';
+import 'package:qinghe_app/features/exams/views/exam_list_page.dart';
 import 'package:qinghe_app/features/onboarding/bindings/onboarding_binding.dart';
 import 'package:qinghe_app/features/onboarding/views/onboarding_page.dart';
 import 'package:qinghe_app/features/timetable_import/views/jwxt_import_page.dart';
+import 'package:qinghe_app/features/timetable_setup/views/school_picker_page.dart';
+import 'package:qinghe_app/features/timetable_setup/views/semester_config_page.dart';
 import 'package:qinghe_app/features/timetable_setup/views/student_profile_page.dart';
 import 'package:qinghe_app/features/timetable_setup/views/timetable_import_page.dart';
 import 'package:qinghe_app/features/profile/views/appearance_page.dart';
@@ -54,8 +57,35 @@ abstract final class AppPages {
       transitionDuration: AppMotion.medium,
     ),
     GetPage<void>(
+      name: AppRoutes.schoolPicker,
+      page: () => SchoolPickerPage(selected: '${Get.arguments ?? ''}'),
+      transition: Transition.rightToLeft,
+      transitionDuration: AppMotion.medium,
+    ),
+    GetPage<void>(
       name: AppRoutes.timetableImport,
       page: () => TimetableImportPage(firstRun: Get.arguments == true),
+      transition: Transition.rightToLeft,
+      transitionDuration: AppMotion.medium,
+    ),
+    GetPage<void>(
+      name: AppRoutes.semesterConfig,
+      page: () {
+        final args = Get.arguments;
+        return SemesterConfigPage(
+          firstRun: args is SemesterConfigArgs && args.firstRun,
+          draft: args is SemesterConfigArgs ? args.draft : null,
+          sourceLabel: args is SemesterConfigArgs ? args.label : null,
+          exams: args is SemesterConfigArgs ? args.exams : const [],
+          examIssue: args is SemesterConfigArgs ? args.examIssue : '',
+        );
+      },
+      transition: Transition.rightToLeft,
+      transitionDuration: AppMotion.medium,
+    ),
+    GetPage<void>(
+      name: AppRoutes.exams,
+      page: ExamListPage.new,
       transition: Transition.rightToLeft,
       transitionDuration: AppMotion.medium,
     ),

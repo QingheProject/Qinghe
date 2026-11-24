@@ -66,6 +66,7 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
         _controller.readSemesters();
       case JwxtImportStage.opening:
       case JwxtImportStage.readingTimetable:
+      case JwxtImportStage.readingExams:
         break;
     }
   }
@@ -107,6 +108,9 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
                     semester: _controller.semesterLabel,
                     count: parse.rules.length,
                     skipped: _controller.skipped,
+                    examCount: _controller.examResult.value?.exams.length ?? 0,
+                    examIssue: _controller.examIssue.value,
+                    examSkipped: _controller.examSkipped,
                   ),
                   (null, final browser?) => ColoredBox(
                     color: colors.surface,
@@ -169,6 +173,7 @@ abstract final class _JwxtStageText {
     JwxtImportStage.readingSemesters => '正在读取学期列表…',
     JwxtImportStage.choosingSemester => '选择要导入的学年与学期。',
     JwxtImportStage.readingTimetable => '正在读取课表…',
+    JwxtImportStage.readingExams => '正在读取考试信息…',
     JwxtImportStage.fetched => '课表已读取，请核对后使用。',
     JwxtImportStage.failed => '操作未完成，请按提示处理后重试。',
   };
@@ -180,6 +185,7 @@ abstract final class _JwxtStageText {
         JwxtImportStage.readingSemesters => '读取中…',
         JwxtImportStage.choosingSemester => '读取本学期课表',
         JwxtImportStage.readingTimetable => '读取中…',
+        JwxtImportStage.readingExams => '读取中…',
         JwxtImportStage.fetched => '使用这份课表',
         JwxtImportStage.failed => hasOptions ? '重试读取课表' : '重试读取学期',
       };
@@ -330,15 +336,22 @@ class _ResultPanel extends StatelessWidget {
     required this.semester,
     required this.count,
     required this.skipped,
+    required this.examCount,
+    required this.examIssue,
+    required this.examSkipped,
   });
 
   final String semester;
   final int count;
   final List<String> skipped;
+  final int examCount;
+  final String examIssue;
+  final List<String> examSkipped;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final colors = context.colors;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpace.lg),
       child: Column(
@@ -353,6 +366,32 @@ class _ResultPanel extends StatelessWidget {
                 Text(
                   semester.isEmpty ? '学期信息未读取' : semester,
                   style: text.bodySmall,
+                ),
+                const SizedBox(height: AppSpace.sm),
+                Semantics(
+                  liveRegion: true,
+                  child: Row(
+                    children: [
+                      Icon(
+                        examIssue.isEmpty
+                            ? AppIcons.calendarCheck
+                            : AppIcons.info,
+                        size: 16,
+                        color: examIssue.isEmpty
+                            ? colors.accent
+                            : colors.inkMuted,
+                      ),
+                      const SizedBox(width: AppSpace.xs),
+                      Expanded(
+                        child: Text(
+                          examIssue.isEmpty
+                              ? '考试信息 $examCount 场'
+                              : '上课安排已读到，考试信息未获取：$examIssue',
+                          style: text.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -369,6 +408,26 @@ class _ResultPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpace.xs),
                   for (final item in skipped)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(item, style: text.bodySmall),
+                    ),
+                ],
+              ),
+            ),
+          ],
+          if (examSkipped.isNotEmpty) ...[
+            const SizedBox(height: AppSpace.md),
+            AppPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${examSkipped.length} 场考试缺少日期，已跳过',
+                    style: text.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpace.xs),
+                  for (final item in examSkipped)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(item, style: text.bodySmall),

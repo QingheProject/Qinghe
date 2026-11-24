@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/student_profile_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
@@ -7,6 +8,7 @@ import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
 import 'package:qinghe_app/app/widgets/app_field_label.dart';
+import 'package:qinghe_app/app/widgets/pressable.dart';
 import 'package:qinghe_app/app/widgets/student_avatar.dart';
 
 /// 个人信息编辑面板：昵称、学校与头像样式，保存后立即生效。
@@ -30,7 +32,7 @@ class _ProfileEditorSheet extends StatefulWidget {
 class _ProfileEditorSheetState extends State<_ProfileEditorSheet> {
   final _profile = Get.find<StudentProfileController>();
   late final _nickname = TextEditingController(text: _profile.nickname);
-  late final _school = TextEditingController(text: _profile.school);
+  late String _school = _profile.school;
   late int _icon = _profile.avatarIcon;
   late int _color = _profile.avatarColor;
   bool _avatarOpen = false;
@@ -39,8 +41,18 @@ class _ProfileEditorSheetState extends State<_ProfileEditorSheet> {
   @override
   void dispose() {
     _nickname.dispose();
-    _school.dispose();
     super.dispose();
+  }
+
+  /// 从学校列表选择学校。
+  Future<void> _pickSchool(BuildContext context) async {
+    // 路由按 void 注册，取通用返回值再自行校验，避免与路由泛型耦合。
+    final picked = await Get.toNamed<Object?>(
+      AppRoutes.schoolPicker,
+      arguments: _school,
+    );
+    if (!mounted || picked is! String) return;
+    setState(() => _school = picked);
   }
 
   Future<void> _save() async {
@@ -48,7 +60,7 @@ class _ProfileEditorSheetState extends State<_ProfileEditorSheet> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await _profile.save(
-        school: _school.text.trim(),
+        school: _school.trim(),
         nickname: _nickname.text.trim(),
       );
       await _profile.saveAvatar(icon: _icon, color: _color);
@@ -145,17 +157,43 @@ class _ProfileEditorSheetState extends State<_ProfileEditorSheet> {
             const SizedBox(height: AppSpace.lg),
             AppFieldLabel(
               label: '学校',
-              child: TextField(
+              child: Pressable(
                 key: const ValueKey('profile-school-field'),
-                controller: _school,
-                maxLength: 80,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _saving ? null : _save(),
-                style: text.bodyMedium,
-                decoration: const InputDecoration(
-                  hintText: '填写学校名称',
-                  prefixIcon: Icon(AppIcons.school, size: 20),
-                  counterText: '',
+                color: context.colors.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                semanticLabel: _school.isEmpty ? '选择学校' : '已选学校 $_school，点击更换',
+                onTap: _saving ? null : () => _pickSchool(context),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpace.md,
+                      vertical: AppSpace.sm,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          AppIcons.school,
+                          size: 20,
+                          color: context.colors.inkMuted,
+                        ),
+                        const SizedBox(width: AppSpace.md),
+                        Expanded(
+                          child: Text(
+                            _school.isEmpty ? '选择学校' : _school,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: text.bodyMedium,
+                          ),
+                        ),
+                        Icon(
+                          AppIcons.chevronRight,
+                          size: 16,
+                          color: context.colors.inkFaint,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

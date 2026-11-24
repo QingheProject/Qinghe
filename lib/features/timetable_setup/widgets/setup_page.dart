@@ -10,6 +10,7 @@ class SetupPage extends StatelessWidget {
     required this.children,
     required this.footer,
     this.step,
+    this.stepCount = 2,
     this.actions,
     super.key,
   });
@@ -19,6 +20,9 @@ class SetupPage extends StatelessWidget {
   final List<Widget> children;
   final Widget footer;
   final int? step;
+
+  /// 首次设置的总步数，用于步骤指示。
+  final int stepCount;
   final List<Widget>? actions;
 
   @override
@@ -44,11 +48,11 @@ class SetupPage extends StatelessWidget {
                   if (step case final current?) ...[
                     Row(
                       children: [
-                        StepIndicator(count: 2, current: current),
+                        StepIndicator(count: stepCount, current: current),
                         const SizedBox(width: AppSpace.sm),
                         Expanded(
                           child: Text(
-                            '首次设置 · ${current + 1} / 2',
+                            '首次设置 · ${current + 1} / $stepCount',
                             style: text.labelMedium,
                           ),
                         ),

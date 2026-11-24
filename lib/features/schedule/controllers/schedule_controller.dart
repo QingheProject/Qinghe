@@ -5,6 +5,7 @@ import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/data/repositories/timetable_source.dart';
 import 'package:qinghe_app/data/models/timetable.dart';
+import 'package:qinghe_app/data/models/timetable_exam.dart';
 
 typedef ScheduleClock = DateTime Function();
 
@@ -80,6 +81,12 @@ class ScheduleController extends GetxController {
 
   List<LessonOccurrence> lessonsOn(DateTime date) =>
       _repository.lessonsOn(date);
+
+  /// 当前学期的考试安排，供课表标记与考试列表使用。
+  List<TimetableExam> get exams => activeTimetable?.exams ?? const [];
+
+  List<TimetableExam> examsOn(DateTime date) =>
+      activeTimetable?.examsOn(date) ?? const [];
 
   void previousWeek() {
     weekDirection.value = -1;

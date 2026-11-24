@@ -66,29 +66,35 @@ void main() {
     }
     await tester.tap(find.text('开始使用'));
     await tester.pumpAndSettle();
-    expect(find.text('首次设置 · 1 / 2'), findsOneWidget);
+    expect(find.text('首次设置 · 1 / 3'), findsOneWidget);
     final school = find.byKey(const ValueKey('setup-school'));
-    final schoolLabel = find.text('学校');
-    final labelTop = tester.getTopLeft(schoolLabel).dy;
-    await tester.enterText(school, '示例大学');
-    await tester.pumpAndSettle();
-    expect(tester.getTopLeft(schoolLabel).dy, labelTop);
-    final decorator = tester.widget<InputDecorator>(
-      find.descendant(of: school, matching: find.byType(InputDecorator)),
-    );
-    final colors = tester.element(school).colors;
-    expect(decorator.isFocused, isTrue);
-    expect(decorator.decoration.fillColor, colors.surfaceMuted);
-    expect(decorator.decoration.focusedBorder?.borderSide.color, colors.accent);
     expect(tester.getSize(school).height, greaterThanOrEqualTo(48));
+    expect(find.text('选择学校'), findsOneWidget);
+
+    // 学校改为从列表页选择；列表之外的学校可以手动填写。
+    await tester.tap(school);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('school-list')), findsOneWidget);
+    expect(find.byKey(const ValueKey('school-西南科技大学')), findsOneWidget);
+    await tester.tap(find.text('找不到学校？手动填写'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('school-other-field')),
+      '示例大学',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('使用该学校'));
+    await tester.pumpAndSettle();
+    expect(find.text('示例大学'), findsOneWidget);
+
     await tester.enterText(
       find.byKey(const ValueKey('setup-nickname')),
       '示例昵称',
     );
     await tester.tap(find.text('继续到课表导入'));
     await tester.pumpAndSettle();
-    expect(find.text('首次设置 · 2 / 2'), findsOneWidget);
-    expect(find.text('示例大学 · 暂未适配'), findsOneWidget);
+    expect(find.text('首次设置 · 2 / 3'), findsOneWidget);
+    expect(find.text('示例大学 · 使用 CSV 或 JSON 导入'), findsOneWidget);
     await tester.tap(find.text('稍后导入'));
     await tester.pumpAndSettle();
     final persistedProfile = StudentProfileController();
@@ -274,6 +280,12 @@ void main() {
     await tester.tap(find.text('CSV 文件'));
     await tester.pumpAndSettle();
     expect(find.text('CSV · 已读取 1 条安排'), findsOneWidget);
+
+    // 数据导入与学期节次已分页：先进入下一步再填写学期。
+    await tester.tap(find.text('下一步：学期与节次'));
+    await tester.pumpAndSettle();
+    expect(find.text('待导入数据'), findsOneWidget);
+    expect(find.text('CSV · 1 条安排'), findsOneWidget);
     final name = find.byKey(const ValueKey('semester-name'));
     await tester.scrollUntilVisible(
       name,
@@ -351,6 +363,9 @@ void main() {
     final json = find.text('JSON 文件');
     expect(tester.getTopLeft(json).dy, greaterThan(tester.getTopLeft(csv).dy));
 
+    // 学期与节次已独立成页，配置与保存都在该页完成。
+    await tester.tap(find.text('下一步：学期与节次'));
+    await tester.pumpAndSettle();
     final field = find.byKey(const ValueKey('semester-name'));
     await tester.ensureVisible(field);
     await tester.enterText(field, '示例学期');

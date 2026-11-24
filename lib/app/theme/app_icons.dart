@@ -33,6 +33,8 @@ abstract final class AppIcons {
   static const add = PhosphorIconsBold.plus;
   static const checkCircle = PhosphorIconsBold.checkCircle;
   static const refresh = PhosphorIconsBold.arrowsClockwise;
+  static const search = PhosphorIconsBold.magnifyingGlass;
+  static const swap = PhosphorIconsBold.arrowsLeftRight;
   static const close = PhosphorIconsBold.x;
   static const edit = PhosphorIconsBold.pencilSimple;
   static const error = PhosphorIconsBold.warningCircle;

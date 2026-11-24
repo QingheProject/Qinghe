@@ -6,8 +6,11 @@ import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
+import 'package:qinghe_app/data/models/timetable_exam.dart';
 import 'package:qinghe_app/features/home/widgets/lesson_sheet.dart';
 import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
+import 'package:qinghe_app/features/schedule/widgets/exam_sheet.dart';
+import 'package:qinghe_app/features/schedule/widgets/schedule_exam_card.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_lesson_card.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_period_label.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_week_switcher.dart';
@@ -81,6 +84,11 @@ class SchedulePage extends GetView<ScheduleController> {
                   days: days,
                   today: controller.today,
                   timeRailWidth: timeRailWidth,
+                  examDays: {
+                    for (final date in days)
+                      if (controller.examsOn(date).isNotEmpty)
+                        DateTime(date.year, date.month, date.day),
+                  },
                 ),
                 const SizedBox(height: AppSpace.sm),
                 Expanded(
@@ -150,6 +158,35 @@ class SchedulePage extends GetView<ScheduleController> {
                             showGridLines:
                                 appearance.scheduleShowGridLines.value,
                             lessonsOn: controller.lessonsOn,
+                            examsOn: controller.examsOn,
+                            examSlot: (exam) =>
+                                controller.activeTimetable?.examLayout(exam),
+                            examColorIndex: (exam) =>
+                                controller.activeTimetable?.examColorIndex(
+                                  exam,
+                                ) ??
+                                0,
+                            onOpenExam: (exam, origin) {
+                              // 与课程卡一致：对话框从这张卡的底色与圆角长出来。
+                              final table = controller.activeTimetable;
+                              final tone = CoursePalette.of(
+                                context,
+                                table?.examColorIndex(exam) ?? 0,
+                                appearance.courseColorScheme.value,
+                                appearance.scheduleCourseSaturation.value,
+                              );
+                              showExamDialog(
+                                context,
+                                exam,
+                                colorIndex: table?.examColorIndex(exam) ?? 0,
+                                origin: origin,
+                                originColor: tone.background.withValues(
+                                  alpha: appearance.scheduleCardOpacity.value,
+                                ),
+                                originRadius:
+                                    appearance.scheduleCardRadius.value,
+                              );
+                            },
                             onOpen: (lesson, origin) {
                               // 对话框从这张卡片的底色与圆角长出来，再过渡到主题底色。
                               final tone = CoursePalette.of(
@@ -251,11 +288,15 @@ class _WeekdayHeader extends StatelessWidget {
     required this.days,
     required this.today,
     required this.timeRailWidth,
+    required this.examDays,
   });
 
   final List<DateTime> days;
   final DateTime today;
   final double timeRailWidth;
+
+  /// 当天有考试的日子，日期下方会带一个标记点。
+  final Set<DateTime> examDays;
 
   @override
   Widget build(BuildContext context) {
@@ -283,6 +324,13 @@ class _WeekdayHeader extends StatelessWidget {
                 date: days[index],
                 today: _sameDate(days[index], today),
                 weekend: days[index].weekday >= DateTime.saturday,
+                hasExam: examDays.contains(
+                  DateTime(
+                    days[index].year,
+                    days[index].month,
+                    days[index].day,
+                  ),
+                ),
                 colors: colors,
               ),
             ),
@@ -298,6 +346,7 @@ class _DayLabel extends StatelessWidget {
     required this.date,
     required this.today,
     required this.weekend,
+    required this.hasExam,
     required this.colors,
   });
 
@@ -305,6 +354,7 @@ class _DayLabel extends StatelessWidget {
   final DateTime date;
   final bool today;
   final bool weekend;
+  final bool hasExam;
   final AppColors colors;
 
   @override
@@ -318,7 +368,9 @@ class _DayLabel extends StatelessWidget {
         : colors.inkMuted;
 
     return Semantics(
-      label: '${date.month}月${date.day}日，星期$weekday${today ? '，今天' : ''}',
+      label:
+          '${date.month}月${date.day}日，星期$weekday'
+          '${today ? '，今天' : ''}${hasExam ? '，有考试' : ''}',
       child: ExcludeSemantics(
         child: Center(
           child: AspectRatio(
@@ -370,6 +422,17 @@ class _DayLabel extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                         ),
+                      ] else if (hasExam) ...[
+                        const SizedBox(height: 2.5),
+                        Container(
+                          key: const ValueKey('schedule-exam-dot'),
+                          width: 3.5,
+                          height: 3.5,
+                          decoration: BoxDecoration(
+                            color: colors.accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -411,6 +474,10 @@ class _WeekGrid extends StatelessWidget {
     required this.showCurrentTimeLine,
     required this.showGridLines,
     required this.lessonsOn,
+    required this.examsOn,
+    required this.examSlot,
+    required this.examColorIndex,
+    required this.onOpenExam,
     required this.onOpen,
     super.key,
   });
@@ -441,6 +508,16 @@ class _WeekGrid extends StatelessWidget {
   final bool showCurrentTimeLine;
   final bool showGridLines;
   final List<LessonOccurrence> Function(DateTime date) lessonsOn;
+
+  /// 当天的考试安排。
+  final List<TimetableExam> Function(DateTime date) examsOn;
+
+  /// 考试在课表里的位置：从网格顶部算起的行偏移与高度（单位：节）。
+  final ({double top, double height})? Function(TimetableExam exam) examSlot;
+
+  /// 考试卡片使用的配色下标。
+  final int Function(TimetableExam exam) examColorIndex;
+  final void Function(TimetableExam exam, Rect? origin) onOpenExam;
   final void Function(LessonOccurrence lesson, Rect? origin) onOpen;
 
   @override
@@ -550,6 +627,35 @@ class _WeekGrid extends StatelessWidget {
                       onTap: (origin) => onOpen(lesson, origin),
                     ),
                   ),
+              for (var dayIndex = 0; dayIndex < days.length; dayIndex++)
+                for (final exam in examsOn(days[dayIndex]))
+                  if (examSlot(exam) case (top: final top, :final height))
+                    Positioned(
+                      left:
+                          timeRailWidth +
+                          dayIndex * dayWidth +
+                          horizontalOffset,
+                      top: top * rowHeight + verticalInset,
+                      width: lessonWidth,
+                      height: height * rowHeight - verticalInset * 2,
+                      child: ScheduleExamCard(
+                        exam: exam,
+                        compact:
+                            lessonWidth < 62 ||
+                            height * rowHeight - verticalInset * 2 < 64,
+                        colorIndex: examColorIndex(exam),
+                        colorScheme: colorScheme,
+                        saturation: saturation,
+                        backgroundOpacity: cardOpacity,
+                        cornerRadius: cardRadius,
+                        showBorder: showBorder,
+                        borderWidth: borderWidth,
+                        showTopLine: showTopLine,
+                        showLocation: showLocation,
+                        textLayout: textLayout,
+                        onTap: (origin) => onOpenExam(exam, origin),
+                      ),
+                    ),
               if (currentTimeOffset != null) ...[
                 Positioned(
                   left: timeRailWidth,
