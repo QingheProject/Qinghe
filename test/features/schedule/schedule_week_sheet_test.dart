@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
+import 'package:qinghe_app/app/widgets/app_sheet.dart';
 import 'package:qinghe_app/app/theme/app_theme.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_week_sheet.dart';
@@ -43,6 +45,23 @@ Widget _host(Widget child) => MaterialApp(
 );
 
 void main() {
+  testWidgets('周次按钮只有日历图标，不再带下拉箭头', (tester) async {
+    await tester.pumpWidget(_host(ScheduleWeekButton(onTap: () {})));
+
+    final button = find.byKey(const ValueKey('schedule-week-button'));
+    expect(button, findsOneWidget);
+    expect(
+      find.descendant(of: button, matching: find.byIcon(AppIcons.calendar)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: button, matching: find.byIcon(AppIcons.chevronDown)),
+      findsNothing,
+    );
+    // 和右侧设置按钮同尺寸。
+    expect(tester.getSize(button), const Size(34, 34));
+  });
+
   testWidgets('周次按钮点击后触发回调', (tester) async {
     var taps = 0;
     await tester.pumpWidget(_host(ScheduleWeekButton(onTap: () => taps++)));
@@ -165,6 +184,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // 图例说明颜色含义。
+    // 抽屉用统一的 AppSheet 外壳，标题与关闭按钮由它提供。
+    expect(find.byType(AppSheet), findsOneWidget);
+    expect(find.text('切换周次'), findsOneWidget);
+    expect(find.byTooltip('关闭'), findsOneWidget);
     expect(find.text('每周一张缩略课表'), findsOneWidget);
     expect(find.text('有课'), findsOneWidget);
     expect(find.text('本周'), findsOneWidget);

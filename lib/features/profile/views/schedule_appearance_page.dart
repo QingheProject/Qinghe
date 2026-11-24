@@ -8,6 +8,7 @@ import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
+import 'package:qinghe_app/app/widgets/app_sheet.dart';
 import 'package:qinghe_app/app/widgets/app_period_edit_row.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
@@ -690,41 +691,33 @@ class _CoursePaletteSetting extends StatelessWidget {
   }
 
   void _showPaletteDrawer(BuildContext context) {
+    final saturation = this.saturation;
+    final selected = this.selected;
     showModalBottomSheet<void>(
       context: context,
       sheetAnimationStyle: AppMotion.style(context),
-      showDragHandle: true,
       isScrollControlled: true,
       backgroundColor: context.colors.surface,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('课程配色', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 2),
-              Text('选择一套课程颜色', style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: AppSpace.lg),
-              for (final (scheme, label) in _coursePaletteOptions) ...[
-                _PaletteOption(
-                  scheme: scheme,
-                  label: label,
-                  saturation: saturation,
-                  selected: scheme == selected,
-                  onTap: () {
-                    if (scheme != selected) onChanged(scheme);
-                    Navigator.of(sheetContext).pop();
-                  },
-                ),
-                if (scheme != _coursePaletteOptions.last.$1)
-                  const SizedBox(height: AppSpace.sm),
-              ],
-            ],
-          ),
-        ),
+      builder: (sheetContext) => AppSheet(
+        title: '课程配色',
+        subtitle: '选择一套课程颜色',
+        showClose: false,
+        children: [
+          for (final (scheme, label) in _coursePaletteOptions) ...[
+            _PaletteOption(
+              scheme: scheme,
+              label: label,
+              saturation: saturation,
+              selected: scheme == selected,
+              onTap: () {
+                if (scheme != selected) onChanged(scheme);
+                Navigator.of(sheetContext).pop();
+              },
+            ),
+            if (scheme != _coursePaletteOptions.last.$1)
+              const SizedBox(height: AppSpace.sm),
+          ],
+        ],
       ),
     );
   }
@@ -1011,16 +1004,12 @@ class _TimeSettings extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       sheetAnimationStyle: AppMotion.style(context),
-      showDragHandle: true,
       isScrollControlled: true,
       backgroundColor: context.colors.surface,
-      builder: (sheetContext) => FractionallySizedBox(
-        heightFactor: 0.9,
-        child: _TimeEditorSheet(
-          initialTimes: startTimes,
-          initialDuration: periodDuration,
-          onSave: onTimeSettingsChanged,
-        ),
+      builder: (sheetContext) => _TimeEditorSheet(
+        initialTimes: startTimes,
+        initialDuration: periodDuration,
+        onSave: onTimeSettingsChanged,
       ),
     );
   }
@@ -1224,100 +1213,79 @@ class _TimeEditorSheetState extends State<_TimeEditorSheet> {
     return AnimatedPadding(
       duration: AppMotion.of(context, AppMotion.fast),
       padding: EdgeInsets.only(bottom: keyboard),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text('自定义节次时间', style: text.titleLarge),
-                      const SizedBox(height: AppSpace.xs),
-                      Text('下课时间按每节课时长自动计算。', style: text.bodySmall),
-                      const SizedBox(height: AppSpace.lg),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text('每节课时长', style: text.bodyMedium),
-                          ),
-                          Text(
-                            '${_duration.round()} 分钟',
-                            style: text.labelMedium?.copyWith(
-                              color: context.colors.accent,
-                            ),
-                          ),
-                        ],
+      child: AppSheet(
+        title: '自定义节次时间',
+        subtitle: '下课时间按每节课时长自动计算。',
+        showClose: false,
+        maxHeightFactor: 0.9,
+        footer: keyboard == 0 ? saveButton : null,
+        children: [
+          Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: Text('每节课时长', style: text.bodyMedium)),
+                    Text(
+                      '${_duration.round()} 分钟',
+                      style: text.labelMedium?.copyWith(
+                        color: context.colors.accent,
                       ),
-                      SliderTheme(
-                        data: _scheduleSliderTheme(context, _durationDivisions),
-                        child: Slider(
-                          key: const ValueKey('schedule-duration-slider'),
-                          value: _duration,
-                          min: 20,
-                          max: 120,
-                          divisions: _durationDivisions,
-                          semanticFormatterCallback: (value) =>
-                              '每节课时长，${value.round()} 分钟',
-                          onChanged: (value) =>
-                              setState(() => _duration = value),
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      for (final (index, controller) in _controllers.indexed)
-                        Padding(
-                          padding: const EdgeInsets.only(top: AppSpace.md),
-                          child: AppPeriodEditRow(
-                            period: index + 1,
-                            endTime: calculateScheduleEndTime(
-                              controller.text,
-                              _duration.round(),
-                            ),
-                            startField: TextFormField(
-                              key: ValueKey('schedule-time-$index'),
-                              controller: controller,
-                              style: text.bodyMedium,
-                              keyboardType: TextInputType.datetime,
-                              textInputAction: index == _controllers.length - 1
-                                  ? TextInputAction.done
-                                  : TextInputAction.next,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp('[0-9:]'),
-                                ),
-                                LengthLimitingTextInputFormatter(5),
-                              ],
-                              decoration: const InputDecoration(
-                                hintText: 'HH:mm',
-                              ),
-                              validator: _validateTime,
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ),
-                        ),
-                      if (keyboard > 0) ...[
-                        const SizedBox(height: AppSpace.md),
-                        saveButton,
-                      ],
-                    ],
+                    ),
+                  ],
+                ),
+                SliderTheme(
+                  data: _scheduleSliderTheme(context, _durationDivisions),
+                  child: Slider(
+                    key: const ValueKey('schedule-duration-slider'),
+                    value: _duration,
+                    min: 20,
+                    max: 120,
+                    divisions: _durationDivisions,
+                    semanticFormatterCallback: (value) =>
+                        '每节课时长，${value.round()} 分钟',
+                    onChanged: (value) => setState(() => _duration = value),
                   ),
                 ),
-              ),
+                const Divider(height: 1),
+                for (final (index, controller) in _controllers.indexed)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpace.md),
+                    child: AppPeriodEditRow(
+                      period: index + 1,
+                      endTime: calculateScheduleEndTime(
+                        controller.text,
+                        _duration.round(),
+                      ),
+                      startField: TextFormField(
+                        key: ValueKey('schedule-time-$index'),
+                        controller: controller,
+                        style: text.bodyMedium,
+                        keyboardType: TextInputType.datetime,
+                        textInputAction: index == _controllers.length - 1
+                            ? TextInputAction.done
+                            : TextInputAction.next,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp('[0-9:]')),
+                          LengthLimitingTextInputFormatter(5),
+                        ],
+                        decoration: const InputDecoration(hintText: 'HH:mm'),
+                        validator: _validateTime,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                  ),
+                if (keyboard > 0) ...[
+                  const SizedBox(height: AppSpace.md),
+                  saveButton,
+                ],
+              ],
             ),
-            if (keyboard == 0)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                child: saveButton,
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

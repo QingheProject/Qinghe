@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
+import 'package:qinghe_app/app/widgets/app_sheet.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
 import 'package:qinghe_app/data/sources/school_registry.dart';
 import 'package:qinghe_app/data/sources/school_source.dart';
@@ -427,21 +428,21 @@ class _OtherSchoolSheetState extends State<_OtherSchoolSheet> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final name = _controller.text.trim();
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.viewInsetsOf(context).bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AnimatedPadding(
+      duration: AppMotion.of(context, AppMotion.fast),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: AppSheet(
+        title: '手动填写学校',
+        subtitle: '列表之外的学校不能使用教务系统，可用 JSON 导入课表。',
+        showClose: false,
+        footer: AppButton(
+          label: '使用该学校',
+          expand: true,
+          onPressed: name.isEmpty
+              ? null
+              : () => Navigator.of(context).pop(name),
+        ),
         children: [
-          Text('手动填写学校', style: text.titleMedium),
-          const SizedBox(height: AppSpace.xs),
-          Text('列表之外的学校不能使用教务系统，可用 JSON 导入课表。', style: text.bodySmall),
-          const SizedBox(height: AppSpace.lg),
           TextField(
             key: const ValueKey('school-other-field'),
             controller: _controller,
@@ -457,14 +458,6 @@ class _OtherSchoolSheetState extends State<_OtherSchoolSheet> {
               hintText: '填写学校名称',
               counterText: '',
             ),
-          ),
-          const SizedBox(height: AppSpace.lg),
-          AppButton(
-            label: '使用该学校',
-            expand: true,
-            onPressed: name.isEmpty
-                ? null
-                : () => Navigator.of(context).pop(name),
           ),
         ],
       ),

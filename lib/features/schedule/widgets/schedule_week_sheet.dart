@@ -5,6 +5,7 @@ import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+import 'package:qinghe_app/app/widgets/app_sheet.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 
@@ -36,14 +37,10 @@ class ScheduleWeekButton extends StatelessWidget {
         semanticLabel: '切换周次',
         splashColor: colors.ink.withValues(alpha: 0.08),
         child: SizedBox(
-          width: 38,
+          width: 34,
           height: 34,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(AppIcons.calendar, size: 16, color: colors.ink),
-              Icon(AppIcons.chevronDown, size: 14, color: colors.inkMuted),
-            ],
+          child: Center(
+            child: Icon(AppIcons.calendar, size: 17, color: colors.ink),
           ),
         ),
       ),
@@ -121,94 +118,55 @@ class _WeekSheet extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final showBack = onBackToCurrentWeek != null && selectedWeek != currentWeek;
 
-    return SafeArea(
-      top: false,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.78,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AppSheet(
+      title: '切换周次',
+      maxHeightFactor: 0.78,
+      actions: [
+        if (showBack)
+          AppSheetAction(
+            key: const ValueKey('schedule-week-today'),
+            label: '回到本周',
+            onPressed: onBackToCurrentWeek,
+          ),
+      ],
+      children: [
+        Row(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 12, 4),
-              child: Row(
-                children: [
-                  Text('切换周次', style: text.titleMedium),
-                  const Spacer(),
-                  if (showBack)
-                    TextButton(
-                      key: const ValueKey('schedule-week-today'),
-                      onPressed: onBackToCurrentWeek,
-                      child: const Text('回到本周'),
-                    ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    tooltip: '关闭',
-                    icon: const Icon(AppIcons.close, size: 20),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Row(
-                children: [
-                  Text('每周一张缩略课表', style: text.labelSmall),
-                  const Spacer(),
-                  _LegendDot(color: colors.accent, label: '本周'),
-                  const SizedBox(width: AppSpace.sm),
-                  _LegendDot(color: colors.accentSoft, label: '有课'),
-                ],
-              ),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    const spacing = AppSpace.sm;
-                    final columns = constraints.maxWidth >= 420 ? 4 : 3;
-                    final width =
-                        (constraints.maxWidth - spacing * (columns - 1)) /
-                        columns;
-                    return Wrap(
-                      spacing: spacing,
-                      runSpacing: spacing,
-                      children: [
-                        for (final week in weeks)
-                          SizedBox(
-                            width: width,
-                            child: _WeekTile(
-                              week: week,
-                              selected: week.week == selectedWeek,
-                              periodCount: periodCount,
-                              colorScheme: colorScheme,
-                              saturation: saturation,
-                              onTap: () => onSelect(week.week),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: colors.line,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
+            Text('每周一张缩略课表', style: text.labelSmall),
+            const Spacer(),
+            _LegendDot(color: colors.accent, label: '本周'),
+            const SizedBox(width: AppSpace.sm),
+            _LegendDot(color: colors.accentSoft, label: '有课'),
           ],
         ),
-      ),
+        const SizedBox(height: AppSpace.sm),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const spacing = AppSpace.sm;
+            final columns = constraints.maxWidth >= 420 ? 4 : 3;
+            final width =
+                (constraints.maxWidth - spacing * (columns - 1)) / columns;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (final week in weeks)
+                  SizedBox(
+                    width: width,
+                    child: _WeekTile(
+                      week: week,
+                      selected: week.week == selectedWeek,
+                      periodCount: periodCount,
+                      colorScheme: colorScheme,
+                      saturation: saturation,
+                      onTap: () => onSelect(week.week),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }
