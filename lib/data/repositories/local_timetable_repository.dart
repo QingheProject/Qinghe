@@ -103,6 +103,70 @@ class LocalTimetableRepository implements TimetableSource {
     _savedPreviews[preview] = true;
   }
 
+  /// 在空白格里新增一门课。
+  ///
+  /// 课程与安排都用时间戳生成的编号，避免与导入的编号冲突；
+  /// 周次为空时按整个学期处理。
+  Future<TimetableRule> addLesson({
+    required String name,
+    required int weekday,
+    required int startPeriod,
+    required int endPeriod,
+    List<int>? weeks,
+    String location = '',
+    String teacher = '',
+  }) async {
+    final table = active;
+    if (table == null) throw const FormatException('当前没有可编辑的课表。');
+    final courseName = name.trim();
+    if (courseName.isEmpty) throw const FormatException('课程名称不能为空。');
+    if (courseName.length > 40) {
+      throw const FormatException('课程名称不能超过 40 个字符。');
+    }
+    if (weekday < 1 || weekday > 7) {
+      throw const FormatException('星期应在 1–7 之间。');
+    }
+    final config = table.config;
+    if (startPeriod < 1 ||
+        endPeriod < startPeriod ||
+        endPeriod > config.periodStartTimes.length) {
+      throw const FormatException('节次超出当前学期的节次设置。');
+    }
+    final lessonWeeks = (weeks == null || weeks.isEmpty)
+        ? [for (var week = 1; week <= config.weekCount; week++) week]
+        : (weeks.toList()..sort());
+    if (lessonWeeks.first < 1 || lessonWeeks.last > config.weekCount) {
+      throw const FormatException('周次超出当前学期的教学周。');
+    }
+
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final rule = TimetableRule(
+      id: 'M${stamp}r',
+      courseId: 'M${stamp}c',
+      name: courseName,
+      weekday: weekday,
+      weeks: lessonWeeks,
+      startPeriod: startPeriod,
+      endPeriod: endPeriod,
+      location: location.trim(),
+      teacher: teacher.trim(),
+      sourceNote: '手动添加',
+    );
+
+    final updated = Timetable(
+      id: table.id,
+      config: config,
+      rules: [...table.rules, rule],
+      exams: table.exams,
+    );
+    await _write([
+      for (final previous in timetables)
+        if (previous.id != updated.id) previous,
+      updated,
+    ], updated.id);
+    return rule;
+  }
+
   /// 只更新当前学期的考试安排，不动上课安排。
   Future<void> replaceExams(List<TimetableExam> exams) async {
     final table = active;

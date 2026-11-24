@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
@@ -28,6 +28,16 @@ class ScheduleController extends GetxController {
 
   /// 最近一次切周的方向：1 表示向后，-1 表示向前，用于让过渡位移与手势一致。
   final weekDirection = 1.obs;
+
+  /// 空白格里点出来的「加号占位」：点在哪一天、哪一节。
+  final ghostSlot = Rxn<({int dayIndex, int period})>();
+
+  /// 在空白格上点一下，先放一个占位格。
+  void selectGhost(int dayIndex, int period) {
+    ghostSlot.value = (dayIndex: dayIndex, period: period);
+  }
+
+  void clearGhost() => ghostSlot.value = null;
 
   DateTime get today => _dateOnly(currentTime.value);
 
@@ -136,21 +146,25 @@ class ScheduleController extends GetxController {
     if (week < 1 || week > config.weekCount) return;
     final target = config.week1Monday.add(Duration(days: 7 * (week - 1)));
     if (target == weekStart.value) return;
+    clearGhost();
     weekDirection.value = target.isAfter(weekStart.value) ? 1 : -1;
     weekStart.value = target;
   }
 
   void previousWeek() {
+    clearGhost();
     weekDirection.value = -1;
     weekStart.value = weekStart.value.subtract(const Duration(days: 7));
   }
 
   void nextWeek() {
+    clearGhost();
     weekDirection.value = 1;
     weekStart.value = weekStart.value.add(const Duration(days: 7));
   }
 
   void goToCurrentWeek() {
+    clearGhost();
     weekDirection.value = currentWeekStart.isAfter(weekStart.value) ? 1 : -1;
     weekStart.value = currentWeekStart;
   }

@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
+import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
+import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/data/models/timetable_exam.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
+import 'package:qinghe_app/features/course_edit/views/add_lesson_page.dart';
 import 'package:qinghe_app/features/home/widgets/lesson_sheet.dart';
 import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
 import 'package:qinghe_app/features/schedule/widgets/exam_sheet.dart';
@@ -54,6 +57,48 @@ class SchedulePage extends GetView<ScheduleController> {
   /// 切周时整张课表淡入淡出，不再左右平移。
   Widget _weekFadeTransition(Widget child, Animation<double> animation) {
     return FadeTransition(opacity: animation, child: child);
+  }
+
+  /// 点课表空白格：先放一个加号占位，已经占位的格子则清掉。
+  void _handleSlotTap(
+    ScheduleController controller,
+    List<DateTime> days,
+    int dayIndex,
+    int period,
+  ) {
+    if (dayIndex < 0 || dayIndex >= days.length) return;
+    final taken = controller
+        .lessonsOn(days[dayIndex])
+        .any(
+          (lesson) =>
+              period >= lesson.startPeriod && period <= lesson.endPeriod,
+        );
+    if (taken) {
+      controller.clearGhost();
+      return;
+    }
+    HapticFeedback.selectionClick();
+    controller.selectGhost(dayIndex, period);
+  }
+
+  /// 再点一下占位格，进入添加课程页。
+  Future<void> _openAddLesson(
+    ScheduleController controller,
+    List<DateTime> days,
+  ) async {
+    final ghost = controller.ghostSlot.value;
+    if (ghost == null || ghost.dayIndex >= days.length) return;
+    final date = days[ghost.dayIndex];
+    HapticFeedback.selectionClick();
+    final result = await Get.toNamed<Object?>(
+      AppRoutes.addLesson,
+      arguments: AddLessonArgs(weekday: date.weekday, period: ghost.period),
+    );
+    controller.clearGhost();
+    if (result == true && Get.isRegistered<LocalTimetableRepository>()) {
+      // 保存后让课表重算这一周。
+      controller.update();
+    }
   }
 
   @override
@@ -163,6 +208,14 @@ class SchedulePage extends GetView<ScheduleController> {
                                 appearance.scheduleShowCurrentTimeLine.value,
                             showGridLines:
                                 appearance.scheduleShowGridLines.value,
+                            ghost: controller.ghostSlot.value,
+                            onTapSlot: (dayIndex, period) => _handleSlotTap(
+                              controller,
+                              days,
+                              dayIndex,
+                              period,
+                            ),
+                            onTapGhost: () => _openAddLesson(controller, days),
                             lessonsOn: controller.lessonsOn,
                             examsOn: controller.examsOn,
                             examSlot: (exam) =>
@@ -173,6 +226,7 @@ class SchedulePage extends GetView<ScheduleController> {
                                 ) ??
                                 0,
                             onOpenExam: (exam, origin) {
+                              controller.clearGhost();
                               // 与课程卡一致：对话框从这张卡的底色与圆角长出来。
                               final table = controller.activeTimetable;
                               final tone = CoursePalette.of(
@@ -194,6 +248,8 @@ class SchedulePage extends GetView<ScheduleController> {
                               );
                             },
                             onOpen: (lesson, origin) {
+                              // 点已有课程时收起空白格里的占位。
+                              controller.clearGhost();
                               // 对话框从这张卡片的底色与圆角长出来，再过渡到主题底色。
                               final tone = CoursePalette.of(
                                 context,
@@ -535,6 +591,9 @@ class _WeekGrid extends StatelessWidget {
     required this.examColorIndex,
     required this.onOpenExam,
     required this.onOpen,
+    required this.ghost,
+    required this.onTapSlot,
+    required this.onTapGhost,
     super.key,
   });
 
@@ -576,6 +635,11 @@ class _WeekGrid extends StatelessWidget {
   final void Function(TimetableExam exam, Rect? origin) onOpenExam;
   final void Function(LessonOccurrence lesson, Rect? origin) onOpen;
 
+  /// 空白格上点出来的加号占位。
+  final ({int dayIndex, int period})? ghost;
+  final void Function(int dayIndex, int period) onTapSlot;
+  final VoidCallback onTapGhost;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -601,105 +665,96 @@ class _WeekGrid extends StatelessWidget {
           final horizontalOffset =
               cardInset + (availableCardWidth - lessonWidth) / 2;
 
-          return Stack(
-            children: [
-              if (todayIndex >= 0)
-                Positioned(
-                  left: timeRailWidth + todayIndex * dayWidth + 1,
-                  top: 0,
-                  bottom: 0,
-                  width: dayWidth - 2,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      key: const ValueKey('schedule-today-column'),
-                      decoration: BoxDecoration(
-                        color: colors.accentSoft.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
+          return GestureDetector(
+            // 只有落在空白处才轮到这一层拿到点击，卡片自己会先消费掉。
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (details) {
+              final local = details.localPosition;
+              if (local.dx < timeRailWidth) return;
+              final dayIndex = ((local.dx - timeRailWidth) / dayWidth)
+                  .floor()
+                  .clamp(0, days.length - 1);
+              final period =
+                  (local.dy / rowHeight).floor().clamp(0, periodCount - 1) + 1;
+              // 再点同一格就是「确认添加」，不依赖手势竞技场谁赢。
+              final current = ghost;
+              if (current != null &&
+                  current.dayIndex == dayIndex &&
+                  current.period == period) {
+                onTapGhost();
+                return;
+              }
+              onTapSlot(dayIndex, period);
+            },
+            child: Stack(
+              children: [
+                if (todayIndex >= 0)
+                  Positioned(
+                    left: timeRailWidth + todayIndex * dayWidth + 1,
+                    top: 0,
+                    bottom: 0,
+                    width: dayWidth - 2,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        key: const ValueKey('schedule-today-column'),
+                        decoration: BoxDecoration(
+                          color: colors.accentSoft.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (showGridLines)
-                for (var row = 1; row < periodCount; row++)
+                if (showGridLines)
+                  for (var row = 1; row < periodCount; row++)
+                    Positioned(
+                      left: timeRailWidth,
+                      right: 0,
+                      top: row * rowHeight,
+                      child: Container(
+                        height: row == 4 || row == 8 ? 1.5 : 1,
+                        color: colors.line.withValues(
+                          alpha: row == 4 || row == 8 ? 0.82 : 0.48,
+                        ),
+                      ),
+                    ),
+                for (var row = 0; row < periodCount; row++)
                   Positioned(
-                    left: timeRailWidth,
-                    right: 0,
+                    left: 0,
                     top: row * rowHeight,
-                    child: Container(
-                      height: row == 4 || row == 8 ? 1.5 : 1,
-                      color: colors.line.withValues(
-                        alpha: row == 4 || row == 8 ? 0.82 : 0.48,
+                    width: timeRailWidth,
+                    height: rowHeight,
+                    child: SchedulePeriodLabel(
+                      period: row + 1,
+                      showTime: showTime,
+                      startTime: startTimes[row],
+                      endTime: calculateScheduleEndTime(
+                        startTimes[row],
+                        periodDuration,
                       ),
+                      alignment: timeAlignment,
+                      textLayout: railTextLayout,
                     ),
                   ),
-              for (var row = 0; row < periodCount; row++)
-                Positioned(
-                  left: 0,
-                  top: row * rowHeight,
-                  width: timeRailWidth,
-                  height: rowHeight,
-                  child: SchedulePeriodLabel(
-                    period: row + 1,
-                    showTime: showTime,
-                    startTime: startTimes[row],
-                    endTime: calculateScheduleEndTime(
-                      startTimes[row],
-                      periodDuration,
-                    ),
-                    alignment: timeAlignment,
-                    textLayout: railTextLayout,
-                  ),
-                ),
-              for (var dayIndex = 0; dayIndex < days.length; dayIndex++)
-                for (final (lesson, lane, laneCount) in _layoutDay(
-                  lessonsOn(days[dayIndex]),
-                ))
-                  Positioned(
-                    left:
-                        timeRailWidth +
-                        dayIndex * dayWidth +
-                        horizontalOffset +
-                        lane * lessonWidth / laneCount,
-                    top: (lesson.startPeriod - 1) * rowHeight + verticalInset,
-                    width: lessonWidth / laneCount,
-                    height:
-                        (lesson.endPeriod - lesson.startPeriod + 1) *
-                            rowHeight -
-                        verticalInset * 2,
-                    child: ScheduleLessonCard(
-                      lesson: lesson,
-                      date: days[dayIndex],
-                      compact: lessonWidth / laneCount < 62,
-                      colorScheme: colorScheme,
-                      saturation: saturation,
-                      backgroundOpacity: cardOpacity,
-                      cornerRadius: cardRadius,
-                      showBorder: showBorder,
-                      borderWidth: borderWidth,
-                      showTopLine: showTopLine,
-                      showLocation: showLocation,
-                      showTeacher: showTeacher,
-                      textLayout: textLayout,
-                      onTap: (origin) => onOpen(lesson, origin),
-                    ),
-                  ),
-              for (var dayIndex = 0; dayIndex < days.length; dayIndex++)
-                for (final exam in examsOn(days[dayIndex]))
-                  if (examSlot(exam) case (top: final top, :final height))
+                for (var dayIndex = 0; dayIndex < days.length; dayIndex++)
+                  for (final (lesson, lane, laneCount) in _layoutDay(
+                    lessonsOn(days[dayIndex]),
+                  ))
                     Positioned(
                       left:
                           timeRailWidth +
                           dayIndex * dayWidth +
-                          horizontalOffset,
-                      top: top * rowHeight + verticalInset,
-                      width: lessonWidth,
-                      height: height * rowHeight - verticalInset * 2,
-                      child: ScheduleExamCard(
-                        exam: exam,
-                        compact:
-                            lessonWidth < 62 ||
-                            height * rowHeight - verticalInset * 2 < 64,
-                        colorIndex: examColorIndex(exam),
+                          horizontalOffset +
+                          lane * lessonWidth / laneCount,
+                      top: (lesson.startPeriod - 1) * rowHeight + verticalInset,
+                      width: lessonWidth / laneCount,
+                      height:
+                          (lesson.endPeriod - lesson.startPeriod + 1) *
+                              rowHeight -
+                          verticalInset * 2,
+                      child: ScheduleLessonCard(
+                        lesson: lesson,
+                        date: days[dayIndex],
+                        compact: lessonWidth / laneCount < 62,
                         colorScheme: colorScheme,
                         saturation: saturation,
                         backgroundOpacity: cardOpacity,
@@ -708,38 +763,80 @@ class _WeekGrid extends StatelessWidget {
                         borderWidth: borderWidth,
                         showTopLine: showTopLine,
                         showLocation: showLocation,
+                        showTeacher: showTeacher,
                         textLayout: textLayout,
-                        onTap: (origin) => onOpenExam(exam, origin),
+                        onTap: (origin) => onOpen(lesson, origin),
                       ),
                     ),
-              if (currentTimeOffset != null) ...[
-                Positioned(
-                  left: timeRailWidth,
-                  right: 0,
-                  top: currentTimeOffset,
-                  child: Semantics(
-                    label: '当前时间位置',
+                for (var dayIndex = 0; dayIndex < days.length; dayIndex++)
+                  for (final exam in examsOn(days[dayIndex]))
+                    if (examSlot(exam) case (top: final top, :final height))
+                      Positioned(
+                        left:
+                            timeRailWidth +
+                            dayIndex * dayWidth +
+                            horizontalOffset,
+                        top: top * rowHeight + verticalInset,
+                        width: lessonWidth,
+                        height: height * rowHeight - verticalInset * 2,
+                        child: ScheduleExamCard(
+                          exam: exam,
+                          compact:
+                              lessonWidth < 62 ||
+                              height * rowHeight - verticalInset * 2 < 64,
+                          colorIndex: examColorIndex(exam),
+                          colorScheme: colorScheme,
+                          saturation: saturation,
+                          backgroundOpacity: cardOpacity,
+                          cornerRadius: cardRadius,
+                          showBorder: showBorder,
+                          borderWidth: borderWidth,
+                          showTopLine: showTopLine,
+                          showLocation: showLocation,
+                          textLayout: textLayout,
+                          onTap: (origin) => onOpenExam(exam, origin),
+                        ),
+                      ),
+                if (ghost case final slot?)
+                  Positioned(
+                    left:
+                        timeRailWidth +
+                        slot.dayIndex * dayWidth +
+                        horizontalOffset,
+                    top: (slot.period - 1) * rowHeight + verticalInset,
+                    width: lessonWidth,
+                    height: rowHeight - verticalInset * 2,
+                    child: _GhostSlot(onTap: onTapGhost, radius: cardRadius),
+                  ),
+                if (currentTimeOffset != null) ...[
+                  Positioned(
+                    left: timeRailWidth,
+                    right: 0,
+                    top: currentTimeOffset,
+                    child: Semantics(
+                      label: '当前时间位置',
+                      child: Container(
+                        key: const ValueKey('schedule-current-time-line'),
+                        height: 1.5,
+                        color: colors.accent.withValues(alpha: 0.82),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: timeRailWidth - 3,
+                    top: currentTimeOffset - 2.25,
                     child: Container(
-                      key: const ValueKey('schedule-current-time-line'),
-                      height: 1.5,
-                      color: colors.accent.withValues(alpha: 0.82),
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: colors.accent,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  left: timeRailWidth - 3,
-                  top: currentTimeOffset - 2.25,
-                  child: Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: colors.accent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
+                ],
               ],
-            ],
+            ),
           );
         },
       ),
@@ -814,3 +911,41 @@ bool _sameDate(DateTime left, DateTime right) =>
 
 bool _containsToday(List<DateTime> days, DateTime today) =>
     days.any((date) => _sameDate(date, today));
+
+/// 空白格里的加号占位：点一下进入添加课程页。
+class _GhostSlot extends StatelessWidget {
+  const _GhostSlot({required this.onTap, required this.radius});
+
+  final VoidCallback onTap;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final borderRadius = BorderRadius.circular(radius);
+    return Semantics(
+      button: true,
+      label: '添加课程，点击打开添加界面',
+      child: ExcludeSemantics(
+        child: Pressable(
+          key: const ValueKey('schedule-ghost-slot'),
+          onTap: onTap,
+          color: colors.surfaceMuted,
+          borderRadius: borderRadius,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: borderRadius,
+              border: Border.all(
+                color: colors.inkFaint.withValues(alpha: 0.55),
+                width: 1,
+              ),
+            ),
+            child: Center(
+              child: Icon(AppIcons.add, size: 18, color: colors.inkMuted),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
