@@ -1,8 +1,4 @@
-import 'dart:convert';
-
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/app_session.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
@@ -23,10 +19,9 @@ import 'package:qinghe_app/features/timetable_setup/widgets/setup_page.dart';
 
 /// 课表导入：选择导入方式并读取数据，学期与节次在下一步配置。
 class TimetableImportPage extends StatefulWidget {
-  const TimetableImportPage({this.firstRun = false, this.pickFile, super.key});
+  const TimetableImportPage({this.firstRun = false, super.key});
 
   final bool firstRun;
-  final Future<XFile?> Function(List<XTypeGroup>)? pickFile;
 
   @override
   State<TimetableImportPage> createState() => _TimetableImportPageState();
@@ -36,84 +31,40 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
   final _repository = Get.find<LocalTimetableRepository>();
   final _profile = Get.find<StudentProfileController>();
   TimetableImport? _draft;
-  TimetableFileType? _fileType;
   String? _sourceLabel;
-  String? _fileIssue;
+  String? _draftIssue;
   List<TimetableExam> _exams = const [];
   String _examIssue = '';
   bool _busy = false;
 
-  Future<void> _choose(TimetableFileType type) async {
-    setState(() => _busy = true);
-    try {
-      final extensions = [type.name];
-      final types = [
-        XTypeGroup(
-          label: '${type.name.toUpperCase()} 文件',
-          extensions: extensions,
-          mimeTypes: type == TimetableFileType.csv
-              ? const ['text/csv', 'text/plain', 'application/vnd.ms-excel']
-              : const ['application/json', 'text/plain'],
-        ),
-      ];
-      final file =
-          await (widget.pickFile?.call(types) ??
-              openFile(acceptedTypeGroups: types));
-      if (!mounted || file == null) return;
-      if (await file.length() > TimetableImport.maxBytes) {
-        throw const FormatException('文件超过 1 MB，请拆分后导入。');
-      }
-      final bytes = await file.readAsBytes();
-      if (bytes.length > TimetableImport.maxBytes) {
-        throw const FormatException('文件超过 1 MB，请拆分后导入。');
-      }
-      final String content;
-      try {
-        content = utf8.decode(bytes);
-      } on FormatException {
-        throw const FormatException('文件不是有效的 UTF-8 文本，请转换编码后重试。');
-      }
-      final draft = TimetableImport.parse(content, type);
-      if (!mounted) return;
-      setState(() {
-        _draft = draft;
-        _fileType = type;
-        _sourceLabel = null;
-        _fileIssue = null;
-        // 文件导入不带考试，避免把上一次读取的考试混进新学期。
-        _exams = const [];
-        _examIssue = '';
-      });
-    } on FormatException catch (error) {
-      if (mounted) _fileError(error.message);
-    } on Exception {
-      if (mounted) _fileError('无法打开文件，请检查文件是否可读后重试。');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  void _fileError(String message) => setState(() {
-    _draft = null;
-    _fileType = null;
-    _sourceLabel = null;
-    _fileIssue = message;
+  void _applyJson(TimetableImport draft) => setState(() {
+    _draft = draft;
+    _sourceLabel = 'JSON';
+    _draftIssue = null;
+    // 粘贴的 JSON 不带考试，避免把上一次读取的考试混进新学期。
     _exams = const [];
     _examIssue = '';
   });
 
   void _clearDraft() => setState(() {
     _draft = null;
-    _fileType = null;
     _sourceLabel = null;
-    _fileIssue = null;
+    _draftIssue = null;
     _exams = const [];
     _examIssue = '';
   });
 
-  Future<void> _copyTemplate() async {
-    await Clipboard.setData(ClipboardData(text: TimetableImport.csvTemplate));
-    if (mounted) showAppToast(context, 'CSV 表头与示例已复制。');
+  /// 打开粘贴 JSON 的页面。
+  Future<void> _openJson() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final result = await Get.toNamed<Object?>(AppRoutes.jsonImport);
+      if (!mounted || result is! TimetableImport) return;
+      _applyJson(result);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   /// 打开学校列表选择学校；选中后写回个人信息。
@@ -137,7 +88,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
     }
     final source = SchoolRegistry.forSchool(school);
     if (source == null || !source.isAvailable) {
-      showAppToast(context, '该学校尚未开放教务导入，请使用 CSV 或 JSON。');
+      showAppToast(context, '该学校尚未开放教务导入，请改用 JSON 粘贴导入。');
       return;
     }
     // 路由按 void 注册，这里取通用返回值再自行校验，避免与路由泛型耦合。
@@ -150,9 +101,8 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
       _draft = result.table;
       _exams = result.exams;
       _examIssue = result.examIssue;
-      _fileType = null;
       _sourceLabel = '教务系统';
-      _fileIssue = null;
+      _draftIssue = null;
     });
   }
 
@@ -160,7 +110,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
     final school = _profile.school.trim();
     if (school.isEmpty) return '请先选择学校';
     final source = SchoolRegistry.forSchool(school);
-    if (source == null) return '$school · 使用 CSV 或 JSON 导入';
+    if (source == null) return '$school · 需粘贴 JSON 导入';
     if (!source.isVerified) return '$school · 正在验证';
     if (!source.runsOnThisPlatform) return '$school · 当前平台暂未开放';
     return '$school · 读取学校课表';
@@ -175,7 +125,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
         AppRoutes.semesterConfig,
         arguments: SemesterConfigArgs(
           draft: _draft,
-          label: _fileType?.name.toUpperCase() ?? _sourceLabel,
+          label: _sourceLabel,
           firstRun: widget.firstRun,
           exams: _exams,
           examIssue: _examIssue,
@@ -204,10 +154,10 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
   @override
   Widget build(BuildContext context) {
     final draft = _draft;
-    final fileIssue = _fileIssue;
+    final draftIssue = _draftIssue;
     return SetupPage(
-      title: widget.firstRun ? '课表导入' : '课表导入',
-      description: '从教务系统读取，或选择 CSV / JSON 文件；学期与节次在下一步设置。',
+      title: '课表导入',
+      description: '从教务系统读取，或粘贴 JSON；学期与节次在下一步设置。',
       step: widget.firstRun ? 1 : null,
       stepCount: 3,
       actions: widget.firstRun
@@ -232,15 +182,14 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
           () => ImportSourcePanel(
             schoolSubtitle: _schoolSubtitle,
             hasSchool: _profile.school.trim().isNotEmpty,
-            fileType: _fileType,
-            draftLabel: _fileType == null ? _sourceLabel : null,
+            jsonSelected: _sourceLabel == 'JSON',
+            draftLabel: _sourceLabel,
             ruleCount: draft?.rules.length ?? 0,
-            onSelect: _busy ? null : _choose,
-            onCopyTemplate: _busy ? null : _copyTemplate,
+            onJson: _busy ? null : _openJson,
             onSchool: _busy ? null : _openJwxt,
             onPickSchool: _busy ? null : _pickSchool,
             onClear: _busy ? null : _clearDraft,
-            issue: fileIssue == null ? null : _ImportNotice(fileIssue),
+            issue: draftIssue == null ? null : _ImportNotice(draftIssue),
           ),
         ),
       ],

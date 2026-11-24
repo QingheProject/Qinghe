@@ -1,6 +1,3 @@
-﻿import 'dart:convert';
-
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -9,7 +6,6 @@ import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/student_profile_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
-import 'package:qinghe_app/data/import/timetable_import.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:qinghe_app/features/profile/views/appearance_page.dart';
@@ -93,7 +89,7 @@ void main() {
     await tester.tap(find.text('继续到课表导入'));
     await tester.pumpAndSettle();
     expect(find.text('首次设置 · 2 / 3'), findsOneWidget);
-    expect(find.text('示例大学 · 使用 CSV 或 JSON 导入'), findsOneWidget);
+    expect(find.text('示例大学 · 需粘贴 JSON 导入'), findsOneWidget);
     await tester.tap(find.text('稍后导入'));
     await tester.pumpAndSettle();
     final persistedProfile = StudentProfileController();
@@ -269,36 +265,31 @@ void main() {
     expect(tester.getBottomRight(last).dy, lessThan(itemBounds.top));
   });
 
-  testWidgets('选择 CSV 后先预览，确认后课程显示在我的和实际课表', (tester) async {
+  testWidgets('粘贴 JSON 后先预览，确认后课程显示在我的和实际课表', (tester) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool('onboarding_completed', true);
     await tester.pumpWidget(const QingheApp());
     await tester.pumpAndSettle();
     final repository = Get.find<LocalTimetableRepository>();
 
-    Get.to<void>(
-      () => TimetableImportPage(
-        pickFile: (types) async {
-          expect(types.single.extensions, ['csv']);
-          return XFile.fromData(
-            utf8.encode(
-              TimetableImport.csvTemplate.replaceFirst('1-16', '1-18'),
-            ),
-            name: 'sample.csv',
-          );
-        },
-      ),
-    );
+    Get.to<void>(() => const TimetableImportPage());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('CSV 文件'));
+    await tester.tap(find.byKey(const ValueKey('import-json')));
     await tester.pumpAndSettle();
-    expect(find.text('CSV · 已读取 1 条安排'), findsOneWidget);
+
+    // JSON 导入页提供模板，插入后直接导入。
+    expect(find.text('粘贴 JSON'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('json-insert-template')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('导入这份课表'));
+    await tester.pumpAndSettle();
+    expect(find.text('JSON · 已读取 1 条安排'), findsOneWidget);
 
     // 数据导入与学期节次已分页：先进入下一步再填写学期。
     await tester.tap(find.text('下一步：学期与节次'));
     await tester.pumpAndSettle();
     expect(find.text('待导入数据'), findsOneWidget);
-    expect(find.text('CSV · 1 条安排'), findsOneWidget);
+    expect(find.text('JSON · 1 条安排'), findsOneWidget);
     final name = find.byKey(const ValueKey('semester-name'));
     await tester.scrollUntilVisible(
       name,
@@ -372,9 +363,14 @@ void main() {
     Get.to<void>(() => const TimetableImportPage());
     await tester.pumpAndSettle();
 
-    final csv = find.text('CSV 文件');
-    final json = find.text('JSON 文件');
-    expect(tester.getTopLeft(json).dy, greaterThan(tester.getTopLeft(csv).dy));
+    // 窄屏下两个导入方式纵向排列，各自带间隔。
+    final jwxt = find.byKey(const ValueKey('import-jwxt'));
+    final json = find.byKey(const ValueKey('import-json'));
+    final jwxtRect = tester.getRect(jwxt);
+    final jsonRect = tester.getRect(json);
+    expect(jsonRect.top, greaterThan(jwxtRect.bottom));
+    expect(jsonRect.left, jwxtRect.left);
+    expect(jsonRect.width, jwxtRect.width);
 
     // 学期与节次已独立成页，配置与保存都在该页完成。
     await tester.tap(find.text('下一步：学期与节次'));

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
@@ -23,7 +23,7 @@ class SchoolPickerPage extends StatefulWidget {
 
 class _SchoolPickerPageState extends State<SchoolPickerPage> {
   static const _headerHeight = 30.0;
-  static const _rowHeight = 62.0;
+  static const _rowHeight = 52.0;
 
   final _search = TextEditingController();
   final _scroll = ScrollController();
@@ -284,25 +284,14 @@ class _SchoolRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      source.school,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: text.bodyMedium?.copyWith(
-                        color: colors.ink,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      source.isAvailable ? '支持教务导入' : '仅支持文件导入',
-                      style: text.bodySmall?.copyWith(color: colors.inkMuted),
-                    ),
-                  ],
+                child: Text(
+                  source.school,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.bodyMedium?.copyWith(
+                    color: colors.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               if (selected)
@@ -401,7 +390,7 @@ class _EmptyResult extends StatelessWidget {
           ),
           const SizedBox(height: AppSpace.xs),
           Text(
-            '列表之外的学校不能用教务系统导入，仍可用 CSV 或 JSON 导入课表。',
+            '列表之外的学校不能用教务系统导入，仍可用 JSON 导入课表。',
             textAlign: TextAlign.center,
             style: text.bodySmall,
           ),
@@ -451,7 +440,7 @@ class _OtherSchoolSheetState extends State<_OtherSchoolSheet> {
         children: [
           Text('手动填写学校', style: text.titleMedium),
           const SizedBox(height: AppSpace.xs),
-          Text('列表之外的学校不能使用教务系统，可用 CSV 或 JSON 导入课表。', style: text.bodySmall),
+          Text('列表之外的学校不能使用教务系统，可用 JSON 导入课表。', style: text.bodySmall),
           const SizedBox(height: AppSpace.lg),
           TextField(
             key: const ValueKey('school-other-field'),

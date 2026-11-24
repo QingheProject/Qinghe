@@ -1,4 +1,4 @@
-import 'package:qinghe_app/data/sources/school_source.dart';
+﻿import 'package:qinghe_app/data/sources/school_source.dart';
 
 /// 西南科技大学：正方 ZFTAL「本科教学教务管理系统」。
 ///
@@ -9,7 +9,7 @@ import 'package:qinghe_app/data/sources/school_source.dart';
 /// 因此固定使用按学期查询。考试取自「学生考试信息」查询接口，与课表使用
 /// 同一份学年与学期编码。
 ///
-/// 桌面端只开放 Windows：Linux 没有可用的 WebView，保持 CSV／JSON 入口。
+/// 桌面端只开放 Windows：Linux 没有可用的 WebView，保持 JSON 入口。
 final swustSource = SchoolSource(
   school: '西南科技大学',
   initial: 'X',

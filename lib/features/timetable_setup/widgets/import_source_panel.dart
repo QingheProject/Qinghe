@@ -3,17 +3,15 @@ import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
-import 'package:qinghe_app/data/import/timetable_import.dart';
 
-/// 导入方式：教务系统、CSV、JSON 三选一，选中后立即读取数据。
+/// 导入方式：教务系统或粘贴 JSON，两者各是一个按钮。
 class ImportSourcePanel extends StatelessWidget {
   const ImportSourcePanel({
     required this.schoolSubtitle,
     required this.hasSchool,
-    required this.fileType,
+    required this.jsonSelected,
     required this.ruleCount,
-    required this.onSelect,
-    required this.onCopyTemplate,
+    required this.onJson,
     required this.onSchool,
     required this.onPickSchool,
     required this.onClear,
@@ -24,13 +22,16 @@ class ImportSourcePanel extends StatelessWidget {
 
   final String schoolSubtitle;
   final bool hasSchool;
-  final TimetableFileType? fileType;
+
+  /// 当前待导入数据是否来自粘贴的 JSON。
+  final bool jsonSelected;
   final int ruleCount;
 
-  /// 教务系统等非文件来源的名称，用于替换文件类型标签。
+  /// 已读取数据的来源名称。
   final String? draftLabel;
-  final ValueChanged<TimetableFileType>? onSelect;
-  final VoidCallback? onCopyTemplate;
+
+  /// 打开粘贴 JSON 页面。
+  final VoidCallback? onJson;
 
   /// 使用教务系统导入。
   final VoidCallback? onSchool;
@@ -44,7 +45,7 @@ class ImportSourcePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final text = Theme.of(context).textTheme;
-    final loaded = fileType != null || draftLabel != null;
+    final loaded = draftLabel != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -55,6 +56,7 @@ class ImportSourcePanel extends StatelessWidget {
         ),
         _SourceButton(
           key: const ValueKey('import-jwxt'),
+          icon: AppIcons.school,
           title: '教务系统',
           subtitle: schoolSubtitle,
           trailing: IconButton(
@@ -69,41 +71,17 @@ class ImportSourcePanel extends StatelessWidget {
         ),
         const SizedBox(height: AppSpace.sm),
         _SourceButton(
-          key: const ValueKey('import-csv'),
-          title: 'CSV 文件',
-          subtitle: '按青禾模板填写的表格',
-          selected: fileType == TimetableFileType.csv,
-          onTap: onSelect == null
-              ? null
-              : () => onSelect!(TimetableFileType.csv),
-        ),
-        const SizedBox(height: AppSpace.sm),
-        _SourceButton(
           key: const ValueKey('import-json'),
-          title: 'JSON 文件',
-          subtitle: '可同时带上学期配置',
-          selected: fileType == TimetableFileType.json,
-          onTap: onSelect == null
-              ? null
-              : () => onSelect!(TimetableFileType.json),
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: onCopyTemplate,
-            icon: const Icon(AppIcons.copy, size: 15),
-            label: const Text('复制 CSV 模板'),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpace.sm),
-              foregroundColor: colors.inkMuted,
-              textStyle: text.bodySmall,
-            ),
-          ),
+          icon: AppIcons.code,
+          title: '粘贴 JSON',
+          subtitle: '直接输入课表 JSON，可插入模板',
+          selected: jsonSelected,
+          onTap: onJson,
         ),
         if (loaded) ...[
-          const SizedBox(height: AppSpace.xs),
+          const SizedBox(height: AppSpace.sm),
           _LoadedStrip(
-            label: fileType?.name.toUpperCase() ?? draftLabel ?? '',
+            label: draftLabel ?? '',
             count: ruleCount,
             onClear: onClear,
           ),
@@ -120,6 +98,7 @@ class ImportSourcePanel extends StatelessWidget {
 /// 一个导入方式：独立的圆角按钮，彼此之间留出间隔。
 class _SourceButton extends StatelessWidget {
   const _SourceButton({
+    required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
@@ -128,6 +107,7 @@ class _SourceButton extends StatelessWidget {
     super.key,
   });
 
+  final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
@@ -164,6 +144,12 @@ class _SourceButton extends StatelessWidget {
           ),
           child: Row(
             children: [
+              Icon(
+                icon,
+                size: 20,
+                color: selected ? colors.accent : colors.inkMuted,
+              ),
+              const SizedBox(width: AppSpace.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

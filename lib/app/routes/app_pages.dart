@@ -1,4 +1,4 @@
-import 'package:get/get.dart';
+﻿import 'package:get/get.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/data/sources/school_source.dart';
@@ -6,6 +6,7 @@ import 'package:qinghe_app/features/exams/views/exam_list_page.dart';
 import 'package:qinghe_app/features/onboarding/bindings/onboarding_binding.dart';
 import 'package:qinghe_app/features/onboarding/views/onboarding_page.dart';
 import 'package:qinghe_app/features/timetable_import/views/jwxt_import_page.dart';
+import 'package:qinghe_app/features/timetable_setup/views/json_import_page.dart';
 import 'package:qinghe_app/features/timetable_setup/views/school_picker_page.dart';
 import 'package:qinghe_app/features/timetable_setup/views/semester_config_page.dart';
 import 'package:qinghe_app/features/timetable_setup/views/student_profile_page.dart';
@@ -65,6 +66,12 @@ abstract final class AppPages {
     GetPage<void>(
       name: AppRoutes.timetableImport,
       page: () => TimetableImportPage(firstRun: Get.arguments == true),
+      transition: Transition.rightToLeft,
+      transitionDuration: AppMotion.medium,
+    ),
+    GetPage<void>(
+      name: AppRoutes.jsonImport,
+      page: JsonImportPage.new,
       transition: Transition.rightToLeft,
       transitionDuration: AppMotion.medium,
     ),

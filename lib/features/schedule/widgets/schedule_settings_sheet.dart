@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
@@ -70,7 +70,7 @@ class _SettingsSheet extends StatelessWidget {
                   key: const ValueKey('schedule-settings-import'),
                   icon: AppIcons.upload,
                   title: '课表导入',
-                  subtitle: '教务系统、CSV 或 JSON',
+                  subtitle: '教务系统、JSON',
                   onTap: () => open(AppRoutes.timetableImport),
                 ),
                 AppListRow(

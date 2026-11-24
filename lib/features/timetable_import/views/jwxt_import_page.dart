@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
@@ -451,7 +451,7 @@ class _UnsupportedPanel extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(AppSpace.xl),
         child: Text(
-          '当前平台没有可用的内置浏览器，请使用 CSV 或 JSON 导入课表。',
+          '当前平台没有可用的内置浏览器，请使用 JSON 导入课表。',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium,
         ),

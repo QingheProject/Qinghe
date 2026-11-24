@@ -25,36 +25,20 @@ const _json = '''
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  test('CSV 支持 BOM、引号字段、离散周次和前导零编号', () {
-    final draft = TimetableImport.parse(
-      '\uFEFF课程编号,安排编号,课程名,星期,周次,开始节次,结束节次,地点\n'
-      '001,R1,"示例,课程",1,"1,3-5",1,2,"示例\n教室"\n',
-      TimetableFileType.csv,
-    );
-    final rule = draft.rules.single;
-    expect(rule.courseId, '001');
-    expect(rule.name, '示例,课程');
-    expect(rule.weeks, [1, 3, 4, 5]);
-    expect(rule.location, '示例\n教室');
-  });
-
   test('未知 JSON 版本、非法日期和重叠节次会报错', () {
     expect(
-      () => TimetableImport.parse('{"version":2}', TimetableFileType.json),
+      () => TimetableImport.parseJson('{"version":2}'),
       throwsFormatException,
     );
     expect(SemesterConfig.parseDay('2026-02-31'), isNull);
     expect(
-      () => TimetableImport.parse(
-        _json.replaceFirst('08:55', '08:30'),
-        TimetableFileType.json,
-      ),
+      () => TimetableImport.parseJson(_json.replaceFirst('08:55', '08:30')),
       throwsFormatException,
     );
   });
 
   test('预览不写入，重复确认或重导入不复制课程，重新加载保留课表', () async {
-    final draft = TimetableImport.parse(_json, TimetableFileType.json);
+    final draft = TimetableImport.parseJson(_json);
     final repository = LocalTimetableRepository();
     final preview = TimetableImportPreview(
       base: null,
@@ -83,7 +67,7 @@ void main() {
   });
 
   test('显示同周重叠，拒绝把已存在的安排编号换到另一门课程', () async {
-    final draft = TimetableImport.parse(_json, TimetableFileType.json);
+    final draft = TimetableImport.parseJson(_json);
     final repository = LocalTimetableRepository();
     await repository.save(
       TimetableImportPreview(
@@ -93,9 +77,8 @@ void main() {
       ),
     );
 
-    final overlap = TimetableImport.parse(
+    final overlap = TimetableImport.parseJson(
       _json.replaceFirst('C1', 'C2').replaceFirst('R1', 'R2'),
-      TimetableFileType.json,
     );
     final preview = TimetableImportPreview(
       base: repository.active,
@@ -104,10 +87,7 @@ void main() {
     );
     expect(preview.conflictCount, 1);
     expect(preview.rules, hasLength(2));
-    final moved = TimetableImport.parse(
-      _json.replaceFirst('C1', 'C2'),
-      TimetableFileType.json,
-    );
+    final moved = TimetableImport.parseJson(_json.replaceFirst('C1', 'C2'));
     expect(
       () => TimetableImportPreview(
         base: repository.active,

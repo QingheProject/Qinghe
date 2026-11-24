@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 
 import 'package:get/get.dart';
@@ -81,7 +81,7 @@ class JwxtImportController extends GetxController {
   Future<void> begin() async {
     final browser = _browser;
     if (browser == null) {
-      _fail('当前平台无法打开教务系统页面，请改用 CSV 或 JSON 导入。');
+      _fail('当前平台无法打开教务系统页面，请改用 JSON 导入。');
       return;
     }
     error.value = '';

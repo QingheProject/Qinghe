@@ -1,4 +1,4 @@
-abstract final class AppRoutes {
+﻿abstract final class AppRoutes {
   static const splash = '/splash';
   static const onboarding = '/welcome';
   static const appearance = '/appearance';
@@ -6,6 +6,7 @@ abstract final class AppRoutes {
   static const studentProfile = '/student-profile';
   static const schoolPicker = '/school-picker';
   static const timetableImport = '/timetable-import';
+  static const jsonImport = '/json-import';
   static const semesterConfig = '/semester-config';
   static const exams = '/exams';
   static const jwxtImport = '/jwxt-import';

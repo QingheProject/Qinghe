@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
@@ -233,7 +233,7 @@ class _EmptyExams extends StatelessWidget {
           Text(
             hasTimetable
                 ? '在教务系统导入时会一起读取考试安排；如果当时没有读到，可以重新导入一次。'
-                : '考试安排随课表一起从教务系统读取，也可用 CSV／JSON 导入课表后手动补充。',
+                : '考试安排随课表一起从教务系统读取，也可用 JSON 导入课表后手动补充。',
             textAlign: TextAlign.center,
             style: text.bodySmall,
           ),

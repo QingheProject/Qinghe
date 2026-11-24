@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
@@ -36,7 +36,8 @@ void main() {
     expect(find.byKey(const ValueKey('school-list')), findsOneWidget);
     expect(find.byKey(const ValueKey('school-letter-X')), findsOneWidget);
     expect(find.text('西南科技大学'), findsOneWidget);
-    expect(find.text('支持教务导入'), findsOneWidget);
+    // 行内不再显示学校状态说明。
+    expect(find.text('支持教务导入'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

@@ -1,11 +1,7 @@
 import 'dart:convert';
 
-import 'package:csv/csv.dart';
-import 'package:csv/csv_settings_autodetection.dart';
 import 'package:qinghe_app/data/models/semester_config.dart';
 import 'package:qinghe_app/data/models/timetable_rule.dart';
-
-enum TimetableFileType { csv, json }
 
 class TimetableImport {
   const TimetableImport(this.rules, {this.config});
@@ -13,31 +9,54 @@ class TimetableImport {
   final List<TimetableRule> rules;
   final SemesterConfig? config;
 
-  static const _requiredColumns = [
-    '课程编号',
-    '安排编号',
-    '课程名',
-    '星期',
-    '周次',
-    '开始节次',
-    '结束节次',
-  ];
-  static const _optionalColumns = ['课程类型', '地点', '教师', '来源备注'];
   static const maxBytes = 1024 * 1024;
   static const maxRules = 2000;
 
-  static final csvTemplate =
-      '${[..._requiredColumns, ..._optionalColumns].join(',')}\r\n'
-      'C001,R001,示例课程甲,1,1-16,1,2,普通,示例教室,,\r\n';
+  /// 可直接粘贴修改的 JSON 模板，字段顺序与 [toJson] 输出一致。
+  static const jsonTemplate = '''
+{
+  "version": 1,
+  "semester": {
+    "name": "示例学期",
+    "week1Monday": "2026-09-07",
+    "weekCount": 18,
+    "periodStartTimes": ["08:00", "08:55", "10:00", "10:55"],
+    "periodDurationMinutes": 45
+  },
+  "courses": [
+    {
+      "id": "C001",
+      "name": "示例课程甲",
+      "type": "regular",
+      "rules": [
+        {
+          "id": "R001",
+          "weekday": 1,
+          "weeks": [
+            1, 2, 3, 4, 5, 6, 7, 8,
+            9, 10, 11, 12, 13, 14, 15, 16
+          ],
+          "startPeriod": 1,
+          "endPeriod": 2,
+          "location": "示例教室",
+          "teacher": "示例老师",
+          "sourceNote": "手写导入"
+        }
+      ]
+    }
+  ]
+}
+''';
 
-  factory TimetableImport.parse(String text, TimetableFileType type) {
+  /// 解析粘贴或读取到的 JSON 文本。
+  factory TimetableImport.parseJson(String text) {
     if (text.startsWith('\uFEFF')) text = text.substring(1);
-    final draft = switch (type) {
-      TimetableFileType.csv => TimetableImport(_readCsv(text)),
-      TimetableFileType.json => _readJson(text),
-    };
+    if (text.length > maxBytes) {
+      throw const FormatException('内容超过 1 MB，请精简后导入。');
+    }
+    final draft = _readJson(text);
     if (draft.rules.isEmpty || draft.rules.length > maxRules) {
-      throw const FormatException('文件应包含 1–2000 条上课安排。');
+      throw const FormatException('应包含 1–2000 条上课安排。');
     }
     return draft;
   }
@@ -144,95 +163,6 @@ class TimetableImport {
       }
     }
     return result;
-  }
-
-  static List<TimetableRule> _readCsv(String text) {
-    final List<List<dynamic>> rows;
-    try {
-      rows = const CsvToListConverter(
-        shouldParseNumbers: false,
-        allowInvalid: false,
-        csvSettingsDetector: FirstOccurrenceSettingsDetector(
-          eols: ['\r\n', '\n', '\r'],
-        ),
-      ).convert(text);
-    } on FormatException {
-      throw const FormatException('CSV 表格结构无效，请检查引号与换行。');
-    }
-    if (rows.isEmpty) throw const FormatException('CSV 文件为空。');
-    final headers = rows.first.map((cell) => cell.toString().trim()).toList();
-    final known = {..._requiredColumns, ..._optionalColumns};
-    if (!headers.toSet().containsAll(_requiredColumns) ||
-        headers.toSet().length != headers.length ||
-        headers.any((name) => !known.contains(name))) {
-      throw const FormatException('CSV 表头与青禾模板不符，请检查缺少、重复或未知的列。');
-    }
-    final columns = {for (final (index, name) in headers.indexed) name: index};
-    final result = <TimetableRule>[];
-    final ruleIds = <String>{};
-    final courses = <String, (String, String)>{};
-    for (final (index, row) in rows.skip(1).indexed) {
-      if (row.length == 1 && row.single.toString().trim().isEmpty) continue;
-      try {
-        if (row.length != headers.length) {
-          throw const FormatException('列数与表头不一致。');
-        }
-        String? cell(String name) => columns[name] == null
-            ? null
-            : row[columns[name]!].toString().trim();
-        final courseId = _text(cell('课程编号'), '课程编号');
-        final name = _text(cell('课程名'), '课程名');
-        final type = switch (cell('课程类型')) {
-          null || '' || '普通' => 'regular',
-          '实验' => 'lab',
-          _ => throw const FormatException('课程类型应为普通或实验。'),
-        };
-        if (courses[courseId] != null && courses[courseId] != (name, type)) {
-          throw const FormatException('同一课程编号的名称与类型应一致。');
-        }
-        courses[courseId] = (name, type);
-        final rule = _rule(
-          {
-            'id': cell('安排编号'),
-            'weekday': int.tryParse(cell('星期')!),
-            'startPeriod': int.tryParse(cell('开始节次')!),
-            'endPeriod': int.tryParse(cell('结束节次')!),
-            'location': cell('地点'),
-            'teacher': cell('教师'),
-            'sourceNote': cell('来源备注'),
-          },
-          courseId,
-          name,
-          type,
-          _csvWeeks(cell('周次')!),
-        );
-        if (!ruleIds.add(rule.id)) throw const FormatException('安排编号重复。');
-        result.add(rule);
-      } on FormatException catch (error) {
-        throw FormatException('第 ${index + 1} 条数据：${error.message}');
-      }
-    }
-    return result;
-  }
-
-  static List<int> _csvWeeks(String text) {
-    final weeks = <int>[];
-    for (final part in text.split(',')) {
-      final match = RegExp(r'^(\d+)(?:\s*-\s*(\d+))?$').firstMatch(part.trim());
-      final start = int.tryParse(match?[1] ?? '');
-      final end = int.tryParse(match?[2] ?? '') ?? start;
-      if (start == null ||
-          end == null ||
-          start < 1 ||
-          end < start ||
-          end > 60) {
-        throw const FormatException('周次格式不正确，请使用 1–60 范围内的周次，例如 1-8 或 1,3,5。');
-      }
-      for (var week = start; week <= end; week++) {
-        weeks.add(week);
-      }
-    }
-    return weeks;
   }
 
   static TimetableRule _rule(
