@@ -271,4 +271,40 @@ void main() {
     final periodCell = tester.getRect(find.byType(SchedulePeriodLabel).first);
     expect(railRect.center.dx, closeTo(periodCell.center.dx, 1));
   });
+
+  testWidgets('回到本周与右上角图标按钮同在一条水平线上', (tester) async {
+    SharedPreferences.setMockInitialValues(_seededPreferences(exams: const []));
+
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+
+    // 切到下一周，右上角才会出现「回到本周」。
+    await tester.tap(find.byKey(const ValueKey('schedule-week-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('schedule-week-2')));
+    await tester.pumpAndSettle();
+
+    final today = find.byKey(const ValueKey('schedule-today-button'));
+    expect(today, findsOneWidget);
+
+    final todayRect = tester.getRect(today);
+    final weekRect = tester.getRect(
+      find.byKey(const ValueKey('schedule-week-button')),
+    );
+    final settingsRect = tester.getRect(
+      find.byKey(const ValueKey('schedule-settings-button')),
+    );
+    final nameRect = tester.getRect(
+      find.byKey(const ValueKey('schedule-heading')),
+    );
+
+    // 三者纵向中心一致，并且都在课表名称右边。
+    expect(todayRect.center.dy, closeTo(weekRect.center.dy, 1));
+    expect(settingsRect.center.dy, closeTo(weekRect.center.dy, 1));
+    expect(todayRect.left, greaterThan(nameRect.right));
+    // 药丸按钮放在 34 高的槽里，不会撑高顶栏。
+    expect(todayRect.height, lessThanOrEqualTo(34));
+  });
 }

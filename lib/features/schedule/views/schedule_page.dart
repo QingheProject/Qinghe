@@ -331,30 +331,24 @@ class _ScheduleHeading extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 1),
-              Row(
-                children: [
-                  // 课表名称紧跟在周次下面。
-                  Expanded(
-                    child: Text(
-                      name.isEmpty ? '我的课表' : name,
-                      key: const ValueKey('schedule-heading'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: text.bodySmall?.copyWith(
-                        color: colors.inkMuted,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpace.sm),
-                  ScheduleTodayButton(visible: !isCurrentWeek, onTap: onToday),
-                ],
+              // 课表名称紧跟在周次下面。
+              Text(
+                name.isEmpty ? '我的课表' : name,
+                key: const ValueKey('schedule-heading'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text.bodySmall?.copyWith(
+                  color: colors.inkMuted,
+                  height: 1.2,
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(width: AppSpace.sm),
-        // 右侧两个图标按钮在两行文字之间竖直居中。
+        // 右侧动作组：回到本周 + 两个图标按钮，整体在两行文字之间竖直居中。
+        ScheduleTodayButton(visible: !isCurrentWeek, onTap: onToday),
+        const SizedBox(width: AppSpace.xs),
         ScheduleWeekButton(onTap: onWeek),
         const SizedBox(width: AppSpace.xs),
         Tooltip(

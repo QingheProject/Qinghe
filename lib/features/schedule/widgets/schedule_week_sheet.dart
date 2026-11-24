@@ -396,28 +396,36 @@ class ScheduleTodayButton extends StatelessWidget {
     return AnimatedSize(
       duration: AppMotion.of(context, AppMotion.medium),
       curve: AppMotion.emphasized,
-      alignment: Alignment.centerRight,
+      alignment: Alignment.center,
       child: AnimatedOpacity(
         duration: AppMotion.of(context, AppMotion.fast),
         opacity: visible ? 1 : 0,
         child: visible
-            ? Pressable(
-                key: const ValueKey('schedule-today-button'),
-                onTap: onTap,
-                color: colors.accentSoft,
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-                semanticLabel: '回到本周',
-                splashColor: colors.accent.withValues(alpha: 0.16),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  child: Text(
-                    '回到本周',
-                    style: text.labelSmall?.copyWith(
-                      color: colors.accent,
-                      fontWeight: FontWeight.w700,
+            // 与右侧图标按钮同高，保证三者纵向对齐。
+            ? SizedBox(
+                height: 34,
+                child: Center(
+                  child: Pressable(
+                    key: const ValueKey('schedule-today-button'),
+                    onTap: onTap,
+                    color: colors.accentSoft,
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
+                    semanticLabel: '回到本周',
+                    splashColor: colors.accent.withValues(alpha: 0.16),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: ExcludeSemantics(
+                        child: Text(
+                          '回到本周',
+                          style: text.labelSmall?.copyWith(
+                            color: colors.accent,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
