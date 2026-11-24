@@ -21,6 +21,7 @@ abstract final class AppIcons {
   static const sun = PhosphorIconsBold.sun;
   static const sparkle = PhosphorIconsBold.sparkle;
   static const notifications = PhosphorIconsBold.bell;
+  static const notificationsOff = PhosphorIconsBold.bellSlash;
   static const offline = PhosphorIconsBold.cloudSlash;
   static const palette = PhosphorIconsBold.palette;
   static const columns = PhosphorIconsBold.columns;

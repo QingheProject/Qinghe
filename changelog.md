@@ -4,6 +4,27 @@
 
 ## 未发布
 
+### 2026 年 11 月 24 日（上课提醒与上课中的实时通知）
+
+#### 新增
+
+- 上课提醒：按课表自动排好系统通知，默认课前 15 分钟提醒一次，内容含课程名、开始时间、节次与地点。提醒覆盖未来 14 天、最多 64 条，已开始的课不排。
+- 「我的 → 课程提醒」抽屉：可关闭提醒或选择提前 5 / 10 / 15 / 30 分钟，设置持久化，改完立即重排通知；抽屉里还有「预览上课中通知」按钮，可直接在真机上看效果。
+- 上课中的实时通知（「上岛」）：Android 16 起用 `Notification.ProgressStyle` 发进度型实时通知，状态栏胶囊显示「剩 N 分钟」，展开是当前课程的进度条；低版本退回带进度的常驻通知。上课期间每 30 秒更新一次，下课后自动收回。
+- 课表变化（导入、学期设置、手动添加课程）后自动重排提醒。
+
+#### 变更
+
+- 新增依赖 `flutter_local_notifications` 20.1.0 与 `timezone` 0.10.1，并开启 Android core library desugaring。
+- Android 清单新增通知、精确闹钟与开机重排相关权限和接收器；`MainActivity` 增加 `class_live` 通道给原生侧发实时通知。
+
+#### 验证
+
+- `dart format lib test` 与 `flutter analyze` 通过，无静态分析问题。
+- `flutter test` 通过，共 150 个测试；新增提醒排期 7 项（提前量、关闭、已开始课跳过、超出天数、编号稳定、上限截断、单节文案）与提醒设置 4 项（默认值、持久化、关闭、忽略负数）。
+- 真机（Android 16）实测：授予通知权限后，`dumpsys alarm` 里有 21 条 `ScheduledNotificationReceiver` 闹钟，时间正是课程开始前 15 分钟（如 09:45 对应 10:00 的课、13:45 对应 14:00 的课），且为精确闹钟。
+- 模拟器（API 37）实测「预览上课中通知」：`dumpsys notification` 显示 `android.template=Notification\$ProgressStyle`、`android.progress=15`、`android.progressMax=45`、`android.shortCriticalText=剩 30 分钟`，通知为 `ONGOING_EVENT|ONLY_ALERT_ONCE`、`category=progress`；下拉通知栏可见「示例课程 · 预览 / 第 3–4 节 · 还剩 30 分钟」。
+
 ### 2026 年 11 月 24 日（GitHub Actions 持续集成）
 
 #### 新增

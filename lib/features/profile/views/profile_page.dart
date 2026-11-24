@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
+import 'package:qinghe_app/app/reminder_controller.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
-import 'package:qinghe_app/app/widgets/app_tag.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
+import 'package:qinghe_app/features/profile/widgets/reminder_sheet.dart';
 import 'package:qinghe_app/features/profile/widgets/semester_progress_card.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
 
@@ -13,9 +14,8 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void soon(String feature) => showAppToast(context, '$feature即将推出');
-    const soonTag = AppTag(label: '即将推出', tone: AppTagTone.faint);
     final timetables = Get.find<LocalTimetableRepository>();
+    final reminder = Get.find<ReminderController>();
 
     return SafeArea(
       bottom: false,
@@ -58,11 +58,14 @@ class ProfilePage extends StatelessWidget {
                     subtitle: '主题与配色',
                     onTap: () => Get.toNamed<void>(AppRoutes.appearance),
                   ),
-                  AppListRow(
-                    icon: AppIcons.notifications,
-                    title: '课程提醒',
-                    trailing: soonTag,
-                    onTap: () => soon('课程提醒'),
+                  Obx(
+                    () => AppListRow(
+                      key: const ValueKey('profile-reminder'),
+                      icon: AppIcons.notifications,
+                      title: '课程提醒',
+                      subtitle: reminder.summary,
+                      onTap: () => showReminderSheet(context),
+                    ),
                   ),
                   AppListRow(
                     icon: AppIcons.info,

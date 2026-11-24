@@ -6,6 +6,7 @@ import 'package:qinghe_app/app/widgets/app_button.dart';
 import 'package:qinghe_app/app/widgets/app_field_label.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
+import 'package:qinghe_app/services/notifications/course_notifications.dart';
 import 'package:qinghe_app/features/timetable_setup/widgets/setup_page.dart';
 
 /// 打开添加课程页时传入的参数：从课表里点的那一格。
@@ -66,6 +67,11 @@ class _AddLessonPageState extends State<AddLessonPage> {
         location: _location.text,
         teacher: _teacher.text,
       );
+      if (!mounted) return;
+      // 课表变了，重排上课提醒。
+      if (Get.isRegistered<CourseNotifications>()) {
+        await Get.find<CourseNotifications>().sync();
+      }
       if (!mounted) return;
       showAppToast(context, '已添加到课表');
       await Future<void>.delayed(const Duration(milliseconds: 200));

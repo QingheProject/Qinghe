@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -16,6 +16,7 @@ import 'package:qinghe_app/data/models/semester_config.dart';
 import 'package:qinghe_app/data/models/timetable.dart';
 import 'package:qinghe_app/data/models/timetable_exam.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
+import 'package:qinghe_app/services/notifications/course_notifications.dart';
 import 'package:qinghe_app/features/timetable_setup/widgets/import_preview_panel.dart';
 import 'package:qinghe_app/features/timetable_setup/widgets/semester_fields.dart';
 import 'package:qinghe_app/features/timetable_setup/widgets/setup_page.dart';
@@ -151,6 +152,10 @@ class _SemesterConfigPageState extends State<SemesterConfigPage> {
         _preview ?? _buildPreview(),
         exams: widget.exams.isEmpty ? null : widget.exams,
       );
+      if (Get.isRegistered<CourseNotifications>()) {
+        // 课表变了，重排上课提醒。
+        await Get.find<CourseNotifications>().sync();
+      }
       if (mounted) await _finish();
     } on FormatException catch (error) {
       if (mounted) _showFormIssue(error.message);
