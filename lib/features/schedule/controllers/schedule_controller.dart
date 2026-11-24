@@ -98,8 +98,16 @@ class ScheduleController extends GetxController {
   /// 真实本周对应的教学周。
   int? get currentTeachingWeek => _repository.teachingWeekOn(currentWeekStart);
 
-  /// 学期内的所有周次，附带本周标记，供周次抽屉使用。
-  List<({int week, DateTime monday, DateTime sunday, bool isCurrent})>?
+  /// 学期内的所有周次，附带本周标记与那一周的课程，供周次抽屉画缩略课表。
+  List<
+    ({
+      int week,
+      DateTime monday,
+      DateTime sunday,
+      bool isCurrent,
+      List<List<LessonOccurrence>> days,
+    })
+  >?
   get weekSlots {
     final config = activeTimetable?.config;
     if (config == null) return null;
@@ -111,6 +119,12 @@ class ScheduleController extends GetxController {
           monday: config.week1Monday.add(Duration(days: 7 * (week - 1))),
           sunday: config.week1Monday.add(Duration(days: 7 * (week - 1) + 6)),
           isCurrent: week == thisWeek,
+          days: [
+            for (var offset = 0; offset < DateTime.daysPerWeek; offset++)
+              _repository.lessonsOn(
+                config.week1Monday.add(Duration(days: 7 * (week - 1) + offset)),
+              ),
+          ],
         ),
     ];
   }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
@@ -44,28 +44,16 @@ class SchedulePage extends GetView<ScheduleController> {
       weeks: slots,
       selectedWeek: controller.displayedTeachingWeek,
       currentWeek: controller.currentTeachingWeek,
+      periodCount:
+          controller.activeTimetable?.config.periodStartTimes.length ?? 12,
       onSelect: controller.goToTeachingWeek,
       onBackToCurrentWeek: controller.goToCurrentWeek,
     );
   }
 
-  /// 课表按切换方向左右滑入，离场的一侧同时反向滑出。
-  Widget _weekSlideTransition(
-    Widget child,
-    Animation<double> animation,
-    int direction,
-  ) {
-    final entering = animation.status != AnimationStatus.reverse;
-    final begin = Offset((entering ? direction : -direction) * 0.07, 0);
-    return SlideTransition(
-      position: animation.drive(
-        Tween(
-          begin: begin,
-          end: Offset.zero,
-        ).chain(CurveTween(curve: AppMotion.emphasized)),
-      ),
-      child: FadeTransition(opacity: animation, child: child),
-    );
+  /// 切周时整张课表淡入淡出，不再左右平移。
+  Widget _weekFadeTransition(Widget child, Animation<double> animation) {
+    return FadeTransition(opacity: animation, child: child);
   }
 
   @override
@@ -84,7 +72,6 @@ class SchedulePage extends GetView<ScheduleController> {
           showTime: appearance.scheduleShowTime.value,
           textLayout: railTextLayout,
         );
-        final weekDirection = controller.weekDirection.value;
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 960),
@@ -122,7 +109,7 @@ class SchedulePage extends GetView<ScheduleController> {
                       bottom: MediaQuery.paddingOf(context).bottom + 96,
                     ),
                     child: ClipRect(
-                      // 切换周次时整张课表按方向左右滑动进出，旧网格同时反向滑出。
+                      // 切换周次时课程淡入淡出，不做平移，避免整屏晃动。
                       child: AnimatedSwitcher(
                         duration: AppMotion.of(
                           context,
@@ -137,12 +124,7 @@ class SchedulePage extends GetView<ScheduleController> {
                             if (current != null) current,
                           ],
                         ),
-                        transitionBuilder: (child, animation) =>
-                            _weekSlideTransition(
-                              child,
-                              animation,
-                              weekDirection,
-                            ),
+                        transitionBuilder: _weekFadeTransition,
                         child: KeyedSubtree(
                           key: ValueKey(controller.weekStart.value),
                           child: _WeekGrid(
