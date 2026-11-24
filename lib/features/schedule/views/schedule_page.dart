@@ -83,7 +83,6 @@ class SchedulePage extends GetView<ScheduleController> {
                   child: _ScheduleHeading(
                     title: controller.timetableName,
                     teachingWeek: controller.teachingWeek,
-                    days: days,
                     isCurrentWeek: controller.isCurrentWeek,
                     onWeek: () => _openWeekSheet(controller),
                     onSettings: () => showScheduleSettingsSheet(context),
@@ -95,6 +94,7 @@ class SchedulePage extends GetView<ScheduleController> {
                   days: days,
                   today: controller.today,
                   timeRailWidth: timeRailWidth,
+                  teachingWeek: controller.teachingWeek,
                   examDays: {
                     for (final date in days)
                       if (controller.examsOn(date).isNotEmpty)
@@ -231,17 +231,16 @@ class _ScheduleHeading extends StatelessWidget {
   const _ScheduleHeading({
     required this.title,
     required this.teachingWeek,
-    required this.days,
     required this.isCurrentWeek,
     required this.onWeek,
     required this.onSettings,
     required this.onToday,
   });
 
-  /// 课表名称，占用原来「课表」标题的位置。
+  /// 课表名称，放在标题区右下角。
   final String? title;
   final int? teachingWeek;
-  final List<DateTime> days;
+
   final bool isCurrentWeek;
   final VoidCallback onWeek;
   final VoidCallback onSettings;
@@ -252,7 +251,7 @@ class _ScheduleHeading extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = context.colors;
     final name = (title ?? '').trim();
-    final weekLabel = teachingWeek == null ? '学期外' : '第 $teachingWeek 周';
+    final weekLabel = teachingWeek == null ? '学期外' : '第$teachingWeek周';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -260,33 +259,20 @@ class _ScheduleHeading extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // 周次在左上角，字号比课表名称大一级。
             Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Flexible(
-                    child: Text(
-                      name.isEmpty ? '我的课表' : name,
-                      key: const ValueKey('schedule-heading'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: text.titleLarge,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpace.sm),
-                  Text(
-                    weekLabel,
-                    key: const ValueKey('schedule-week-label'),
-                    style: text.labelMedium?.copyWith(
-                      color: colors.inkMuted,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
+              child: Text(
+                weekLabel,
+                key: const ValueKey('schedule-week-label'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text.titleLarge?.copyWith(
+                  color: colors.ink,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ),
-            const SizedBox(width: AppSpace.sm),
             ScheduleWeekButton(onTap: onWeek),
             const SizedBox(width: AppSpace.xs),
             Tooltip(
@@ -307,16 +293,17 @@ class _ScheduleHeading extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 2),
         Row(
           children: [
+            // 课表名称紧跟在周次下面。
             Expanded(
               child: Text(
-                _formatDateRange(days),
-                key: const ValueKey('schedule-date-range'),
+                name.isEmpty ? '我的课表' : name,
+                key: const ValueKey('schedule-heading'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: text.bodySmall,
+                style: text.bodyMedium?.copyWith(color: colors.inkMuted),
               ),
             ),
             const SizedBox(width: AppSpace.sm),
@@ -333,12 +320,16 @@ class _WeekdayHeader extends StatelessWidget {
     required this.days,
     required this.today,
     required this.timeRailWidth,
+    required this.teachingWeek,
     required this.examDays,
   });
 
   final List<DateTime> days;
   final DateTime today;
   final double timeRailWidth;
+
+  /// 节次栏上方展示当前教学周。
+  final int? teachingWeek;
 
   /// 当天有考试的日子，日期下方会带一个标记点。
   final Set<DateTime> examDays;
@@ -352,13 +343,33 @@ class _WeekdayHeader extends StatelessWidget {
       height: 42,
       child: Row(
         children: [
+          // 节次栏上方写周次，和下面一列节次数字对齐。
           SizedBox(
             width: timeRailWidth,
             child: Align(
-              alignment: Alignment.bottomCenter,
+              // 周次在节次栏顶部居中。
+              alignment: Alignment.center,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text('节', style: text.labelSmall),
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Semantics(
+                  label: teachingWeek == null ? '学期外' : '第 $teachingWeek 周',
+                  child: ExcludeSemantics(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        teachingWeek == null ? '—' : '$teachingWeek周',
+                        key: const ValueKey('schedule-rail-week'),
+                        textAlign: TextAlign.center,
+                        style: text.labelSmall?.copyWith(
+                          color: colors.inkMuted,
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -794,15 +805,6 @@ double? _timeOffset(
 int _minuteOfDay(String value) {
   final parts = value.split(':');
   return int.parse(parts[0]) * 60 + int.parse(parts[1]);
-}
-
-String _formatDateRange(List<DateTime> days) {
-  final first = days.first;
-  final last = days.last;
-  if (first.year == last.year && first.month == last.month) {
-    return '${first.month}月${first.day}日—${last.day}日';
-  }
-  return '${first.month}月${first.day}日—${last.month}月${last.day}日';
 }
 
 bool _sameDate(DateTime left, DateTime right) =>

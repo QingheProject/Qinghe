@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/app.dart';
@@ -145,7 +145,7 @@ void main() {
     expect(shell.currentIndex.value, 1);
     expect(find.byKey(const ValueKey('schedule-grid')), findsOneWidget);
 
-    // 顶部标题显示课表名称与周次，右侧是周次切换与设置按钮，下面是时间日期。
+    // 左上角显示周次，右侧是周次切换与设置按钮，课表名称在右下角。
     expect(find.byKey(const ValueKey('schedule-heading')), findsOneWidget);
     expect(find.byKey(const ValueKey('schedule-week-label')), findsOneWidget);
     expect(find.byKey(const ValueKey('schedule-week-button')), findsOneWidget);
@@ -153,7 +153,6 @@ void main() {
       find.byKey(const ValueKey('schedule-settings-button')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('schedule-date-range')), findsOneWidget);
     // 标题不再写「课表」，没有导入时退回「我的课表」。
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('schedule-heading'))).data,

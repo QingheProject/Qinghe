@@ -13,13 +13,13 @@ class SchedulePeriodLabel extends StatelessWidget {
     super.key,
   });
 
-  /// 节次栏需要多宽。并排布局要同时容纳节次与时间，所以比竖排更宽。
+  /// 节次栏需要多宽。内容居中排布，所以只要放得下一列文字。
   static double railWidthFor({
     required bool showTime,
     required ScheduleRailTextLayout textLayout,
   }) {
-    if (!showTime) return 28;
-    return textLayout == ScheduleRailTextLayout.sideBySide ? 64 : 50;
+    if (!showTime) return 22;
+    return textLayout == ScheduleRailTextLayout.sideBySide ? 54 : 40;
   }
 
   final int period;
@@ -35,7 +35,7 @@ class SchedulePeriodLabel extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final periodText = Text(
       '$period',
-      textAlign: TextAlign.right,
+      textAlign: TextAlign.center,
       style: text.labelSmall?.copyWith(
         color: colors.ink,
         fontSize: 11,
@@ -53,10 +53,10 @@ class SchedulePeriodLabel extends StatelessWidget {
     );
     final times = Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(startTime, textAlign: TextAlign.right, style: timeStyle),
-        Text(endTime, textAlign: TextAlign.right, style: timeStyle),
+        Text(startTime, textAlign: TextAlign.center, style: timeStyle),
+        Text(endTime, textAlign: TextAlign.center, style: timeStyle),
       ],
     );
 
@@ -64,16 +64,17 @@ class SchedulePeriodLabel extends StatelessWidget {
       label: showTime ? '第 $period 节，$startTime 至 $endTime' : '第 $period 节',
       child: ExcludeSemantics(
         child: Align(
+          // 节次与时间在栏内居中，不再贴着右侧。
           alignment: switch (alignment) {
-            ScheduleTimeAlignment.top => Alignment.topRight,
-            ScheduleTimeAlignment.center => Alignment.centerRight,
-            ScheduleTimeAlignment.bottom => Alignment.bottomRight,
+            ScheduleTimeAlignment.top => Alignment.topCenter,
+            ScheduleTimeAlignment.center => Alignment.center,
+            ScheduleTimeAlignment.bottom => Alignment.bottomCenter,
           },
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(0, 3, 3, 3),
+            padding: const EdgeInsets.symmetric(vertical: 3),
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
+              alignment: Alignment.center,
               child: _content(periodText, times),
             ),
           ),
@@ -87,12 +88,12 @@ class SchedulePeriodLabel extends StatelessWidget {
     return switch (textLayout) {
       ScheduleRailTextLayout.periodFirst => Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [periodText, times],
       ),
       ScheduleRailTextLayout.timeFirst => Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [times, periodText],
       ),
       ScheduleRailTextLayout.sideBySide => Row(

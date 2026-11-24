@@ -12,7 +12,7 @@ void main() {
           showTime: false,
           textLayout: ScheduleRailTextLayout.sideBySide,
         ),
-        28,
+        22,
       );
     });
 

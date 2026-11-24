@@ -10,6 +10,7 @@ import 'package:qinghe_app/data/models/timetable_exam.dart';
 import 'package:qinghe_app/data/models/timetable_rule.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
+import 'package:qinghe_app/features/schedule/widgets/schedule_period_label.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 以本周周一为第一教学周，保证考试落在当前显示的这一周里。
@@ -161,7 +162,7 @@ void main() {
     expect(Get.find<LocalTimetableRepository>().active?.rules, hasLength(1));
   });
 
-  testWidgets('顶部标题是课表名称与周次，右侧是周次与设置按钮，下面是时间日期', (tester) async {
+  testWidgets('周次在左上角，名称排在下面，右侧是周次与设置按钮', (tester) async {
     SharedPreferences.setMockInitialValues(_seededPreferences(exams: const []));
 
     await tester.pumpWidget(const QingheApp());
@@ -176,26 +177,30 @@ void main() {
     final weekLabel = tester.widget<Text>(
       find.byKey(const ValueKey('schedule-week-label')),
     );
-    expect(weekLabel.data, '第 1 周');
+    expect(weekLabel.data, '第1周');
 
-    final headingRect = tester.getRect(
+    final weekRect = tester.getRect(
+      find.byKey(const ValueKey('schedule-week-label')),
+    );
+    final nameRect = tester.getRect(
       find.byKey(const ValueKey('schedule-heading')),
     );
-    final weekRect = tester.getRect(
+    final weekButtonRect = tester.getRect(
       find.byKey(const ValueKey('schedule-week-button')),
     );
     final settingsRect = tester.getRect(
       find.byKey(const ValueKey('schedule-settings-button')),
     );
-    final dateRect = tester.getRect(
-      find.byKey(const ValueKey('schedule-date-range')),
-    );
 
-    // 周次按钮与设置按钮在标题右侧，依次排列。
-    expect(weekRect.left, greaterThan(headingRect.right));
-    expect(settingsRect.left, greaterThan(weekRect.right));
-    // 时间日期在标题下面。
-    expect(dateRect.top, greaterThan(headingRect.bottom));
+    // 周次与名称都排在左侧，两个按钮靠右上依次排列。
+    expect(weekRect.left, lessThan(weekButtonRect.left));
+    expect(settingsRect.left, greaterThan(weekButtonRect.right));
+    expect(nameRect.top, greaterThan(weekRect.bottom));
+    expect(nameRect.left, closeTo(weekRect.left, 2));
+    // 周次比课表名称更大，是这块的主标题。
+    expect(weekLabel.style!.fontSize!, greaterThan(heading.style!.fontSize!));
+    // 日期小标题已经移除。
+    expect(find.byKey(const ValueKey('schedule-date-range')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -239,5 +244,27 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('schedule-today-button')));
     await tester.pumpAndSettle();
     expect(schedule.isCurrentWeek, isTrue);
+  });
+
+  testWidgets('节次栏上方显示当前教学周', (tester) async {
+    SharedPreferences.setMockInitialValues(_seededPreferences(exams: const []));
+
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+
+    final railWeek = find.byKey(const ValueKey('schedule-rail-week'));
+    expect(railWeek, findsOneWidget);
+    expect(tester.widget<Text>(railWeek).data, '1周');
+
+    // 它在节次栏里，位于日期表头那一行，并且在节次栏那一列居中。
+    final railRect = tester.getRect(railWeek);
+    final mondayRect = tester.getRect(find.text('一'));
+    expect(railRect.right, lessThan(mondayRect.left));
+
+    // 与下面第 1 节的格子对比：水平中心应当一致。
+    final periodCell = tester.getRect(find.byType(SchedulePeriodLabel).first);
+    expect(railRect.center.dx, closeTo(periodCell.center.dx, 1));
   });
 }
