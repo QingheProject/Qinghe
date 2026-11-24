@@ -4,6 +4,22 @@
 
 ## 未发布
 
+### 2026 年 11 月 24 日（GitHub Actions 持续集成）
+
+#### 新增
+
+- 新增 `.github/workflows/ci.yml`：推送到 `main` 或提交 PR 时自动执行格式检查（`dart format --set-exit-if-changed`）、`flutter analyze` 与 `flutter test`。
+- `main` 分支通过检查后再构建 release APK，并作为构建产物上传（保留 14 天）。
+- CI 固定 Flutter `3.35.3`（stable）与 JDK 17，开启 Flutter SDK 缓存，并对同一分支的重复推送启用并发取消。
+- README 增加 CI 徽章与「持续集成」说明。
+
+#### 验证
+
+- 本地执行 workflow 中的同一条格式检查命令：`dart format --output=none --set-exit-if-changed lib test`，输出 `Formatted 122 files (0 changed)`，退出码 0。
+- 本地 `flutter analyze` 与 `flutter test`（139 项）均通过，CI 中的对应步骤与本地一致。
+- 工作流 YAML 已用 YAML 解析器校验通过：触发器为 `push` / `pull_request` / `workflow_dispatch`，两个 job（`verify`、`build-android`）结构正确。
+- 实际流水线运行结果需推送后在仓库 Actions 页面确认。
+
 ### 2026 年 11 月 24 日（课表右上角「回到本周」错位）
 
 #### 修复

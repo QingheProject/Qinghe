@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 同一个分支重复推送时，取消上一次还在跑的构建。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.35.3
+
+jobs:
+  verify:
+    name: 格式、静态分析与测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: 安装依赖
+        run: flutter pub get
+
+      - name: 检查代码格式
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: 静态分析
+        run: flutter analyze
+
+      - name: 运行测试
+        run: flutter test --reporter compact
+
+  build-android:
+    name: 构建 Android 安装包
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 准备 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: 安装依赖
+        run: flutter pub get
+
+      # 目前 release 沿用 debug 签名，仅供内部安装测试。
+      - name: 构建 release APK
+        run: flutter build apk --release
+
+      - name: 上传安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: qinghe-app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
