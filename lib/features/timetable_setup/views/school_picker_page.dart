@@ -283,23 +283,6 @@ class _SchoolRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: selected ? colors.accent : colors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Text(
-                  source.initial.toUpperCase(),
-                  style: text.labelMedium?.copyWith(
-                    color: selected ? colors.onAccent : colors.inkMuted,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpace.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

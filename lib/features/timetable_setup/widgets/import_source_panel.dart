@@ -53,51 +53,39 @@ class ImportSourcePanel extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: AppSpace.sm),
           child: Text('选择导入方式', style: text.labelMedium),
         ),
-        Material(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.xl),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              _OptionRow(
-                key: const ValueKey('import-jwxt'),
-                icon: AppIcons.school,
-                title: '教务系统',
-                subtitle: schoolSubtitle,
-                trailing: IconButton(
-                  key: const ValueKey('import-pick-school'),
-                  tooltip: hasSchool ? '更换学校' : '选择学校',
-                  onPressed: onPickSchool,
-                  icon: const Icon(AppIcons.swap, size: 18),
-                  color: colors.inkMuted,
-                  visualDensity: VisualDensity.compact,
-                ),
-                onTap: onSchool,
-              ),
-              const _RowDivider(),
-              _OptionRow(
-                key: const ValueKey('import-csv'),
-                icon: AppIcons.table,
-                title: 'CSV 文件',
-                subtitle: '按青禾模板填写的表格',
-                selected: fileType == TimetableFileType.csv,
-                onTap: onSelect == null
-                    ? null
-                    : () => onSelect!(TimetableFileType.csv),
-              ),
-              const _RowDivider(),
-              _OptionRow(
-                key: const ValueKey('import-json'),
-                icon: AppIcons.code,
-                title: 'JSON 文件',
-                subtitle: '可同时带上学期配置',
-                selected: fileType == TimetableFileType.json,
-                onTap: onSelect == null
-                    ? null
-                    : () => onSelect!(TimetableFileType.json),
-              ),
-            ],
+        _SourceButton(
+          key: const ValueKey('import-jwxt'),
+          title: '教务系统',
+          subtitle: schoolSubtitle,
+          trailing: IconButton(
+            key: const ValueKey('import-pick-school'),
+            tooltip: hasSchool ? '更换学校' : '选择学校',
+            onPressed: onPickSchool,
+            icon: const Icon(AppIcons.swap, size: 18),
+            color: colors.inkMuted,
+            visualDensity: VisualDensity.compact,
           ),
+          onTap: onSchool,
+        ),
+        const SizedBox(height: AppSpace.sm),
+        _SourceButton(
+          key: const ValueKey('import-csv'),
+          title: 'CSV 文件',
+          subtitle: '按青禾模板填写的表格',
+          selected: fileType == TimetableFileType.csv,
+          onTap: onSelect == null
+              ? null
+              : () => onSelect!(TimetableFileType.csv),
+        ),
+        const SizedBox(height: AppSpace.sm),
+        _SourceButton(
+          key: const ValueKey('import-json'),
+          title: 'JSON 文件',
+          subtitle: '可同时带上学期配置',
+          selected: fileType == TimetableFileType.json,
+          onTap: onSelect == null
+              ? null
+              : () => onSelect!(TimetableFileType.json),
         ),
         Align(
           alignment: Alignment.centerLeft,
@@ -129,21 +117,9 @@ class ImportSourcePanel extends StatelessWidget {
   }
 }
 
-class _RowDivider extends StatelessWidget {
-  const _RowDivider();
-
-  @override
-  Widget build(BuildContext context) => Divider(
-    height: 1,
-    indent: AppSpace.lg,
-    endIndent: AppSpace.lg,
-    color: context.colors.line,
-  );
-}
-
-class _OptionRow extends StatelessWidget {
-  const _OptionRow({
-    required this.icon,
+/// 一个导入方式：独立的圆角按钮，彼此之间留出间隔。
+class _SourceButton extends StatelessWidget {
+  const _SourceButton({
     required this.title,
     required this.subtitle,
     required this.onTap,
@@ -152,7 +128,6 @@ class _OptionRow extends StatelessWidget {
     super.key,
   });
 
-  final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
@@ -168,33 +143,27 @@ class _OptionRow extends StatelessWidget {
       selected: selected,
       label: '$title，$subtitle',
       child: Pressable(
-        color: selected ? colors.accentSoft : Colors.transparent,
+        color: selected ? colors.accentSoft : colors.surface,
         selected: selected,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         onTap: onTap,
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.fromLTRB(
             AppSpace.lg,
             AppSpace.md,
             AppSpace.sm,
             AppSpace.md,
           ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(
+              color: selected
+                  ? colors.accent.withValues(alpha: 0.45)
+                  : Colors.transparent,
+            ),
+          ),
           child: Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: selected ? colors.accent : colors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Icon(
-                  selected ? AppIcons.check : icon,
-                  size: 19,
-                  color: selected ? colors.onAccent : colors.inkMuted,
-                ),
-              ),
-              const SizedBox(width: AppSpace.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +173,7 @@ class _OptionRow extends StatelessWidget {
                       title,
                       style: text.titleMedium?.copyWith(color: colors.ink),
                     ),
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       maxLines: 1,
@@ -216,15 +185,22 @@ class _OptionRow extends StatelessWidget {
               ),
               if (trailing != null)
                 trailing!
-              else
-                Padding(
-                  padding: const EdgeInsets.only(right: AppSpace.sm),
-                  child: Icon(
-                    AppIcons.chevronRight,
-                    size: 16,
-                    color: colors.inkFaint,
+              else ...[
+                if (selected)
+                  Padding(
+                    padding: const EdgeInsets.only(right: AppSpace.sm),
+                    child: Icon(AppIcons.check, size: 17, color: colors.accent),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(right: AppSpace.sm),
+                    child: Icon(
+                      AppIcons.chevronRight,
+                      size: 16,
+                      color: colors.inkFaint,
+                    ),
                   ),
-                ),
+              ],
             ],
           ),
         ),
