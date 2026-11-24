@@ -88,6 +88,44 @@ class ScheduleController extends GetxController {
   List<TimetableExam> examsOn(DateTime date) =>
       activeTimetable?.examsOn(date) ?? const [];
 
+  /// 课表名称，用于顶部标题。
+  String? get timetableName => activeTimetable?.config.name;
+
+  /// 当前显示的这一周对应的教学周（学期外为空）。
+  int? get displayedTeachingWeek =>
+      _repository.teachingWeekOn(displayedWeekStart);
+
+  /// 真实本周对应的教学周。
+  int? get currentTeachingWeek => _repository.teachingWeekOn(currentWeekStart);
+
+  /// 学期内的所有周次，附带本周标记，供周次抽屉使用。
+  List<({int week, DateTime monday, DateTime sunday, bool isCurrent})>?
+  get weekSlots {
+    final config = activeTimetable?.config;
+    if (config == null) return null;
+    final thisWeek = currentTeachingWeek;
+    return [
+      for (var week = 1; week <= config.weekCount; week++)
+        (
+          week: week,
+          monday: config.week1Monday.add(Duration(days: 7 * (week - 1))),
+          sunday: config.week1Monday.add(Duration(days: 7 * (week - 1) + 6)),
+          isCurrent: week == thisWeek,
+        ),
+    ];
+  }
+
+  /// 跳到第 [week] 教学周。
+  void goToTeachingWeek(int week) {
+    final config = activeTimetable?.config;
+    if (config == null) return;
+    if (week < 1 || week > config.weekCount) return;
+    final target = config.week1Monday.add(Duration(days: 7 * (week - 1)));
+    if (target == weekStart.value) return;
+    weekDirection.value = target.isAfter(weekStart.value) ? 1 : -1;
+    weekStart.value = target;
+  }
+
   void previousWeek() {
     weekDirection.value = -1;
     weekStart.value = weekStart.value.subtract(const Duration(days: 7));

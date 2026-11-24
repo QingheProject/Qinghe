@@ -1,19 +1,23 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
+import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/data/models/timetable_exam.dart';
+import 'package:qinghe_app/app/widgets/app_sections.dart';
+import 'package:qinghe_app/app/widgets/pressable.dart';
 import 'package:qinghe_app/features/home/widgets/lesson_sheet.dart';
 import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
 import 'package:qinghe_app/features/schedule/widgets/exam_sheet.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_exam_card.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_lesson_card.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_period_label.dart';
-import 'package:qinghe_app/features/schedule/widgets/schedule_week_switcher.dart';
+import 'package:qinghe_app/features/schedule/widgets/schedule_settings_sheet.dart';
+import 'package:qinghe_app/features/schedule/widgets/schedule_week_sheet.dart';
 
 const _weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -23,6 +27,26 @@ class SchedulePage extends GetView<ScheduleController> {
   void _shiftWeek(VoidCallback action) {
     HapticFeedback.selectionClick();
     action();
+  }
+
+  /// 打开周次抽屉；没有课表时给出提示。
+  Future<void> _openWeekSheet(ScheduleController controller) async {
+    final context = Get.context;
+    if (context == null) return;
+    final slots = controller.weekSlots;
+    if (slots == null) {
+      showAppToast(context, '还没有课表，先导入课表后再切换周次。');
+      return;
+    }
+    HapticFeedback.selectionClick();
+    await showScheduleWeekSheet(
+      context: context,
+      weeks: slots,
+      selectedWeek: controller.displayedTeachingWeek,
+      currentWeek: controller.currentTeachingWeek,
+      onSelect: controller.goToTeachingWeek,
+      onBackToCurrentWeek: controller.goToCurrentWeek,
+    );
   }
 
   /// 课表按切换方向左右滑入，离场的一侧同时反向滑出。
@@ -70,12 +94,12 @@ class SchedulePage extends GetView<ScheduleController> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: _ScheduleHeading(
-                    days: days,
+                    title: controller.timetableName,
                     teachingWeek: controller.teachingWeek,
+                    days: days,
                     isCurrentWeek: controller.isCurrentWeek,
-                    weekDirection: weekDirection,
-                    onPrevious: () => _shiftWeek(controller.previousWeek),
-                    onNext: () => _shiftWeek(controller.nextWeek),
+                    onWeek: () => _openWeekSheet(controller),
+                    onSettings: () => showScheduleSettingsSheet(context),
                     onToday: () => _shiftWeek(controller.goToCurrentWeek),
                   ),
                 ),
@@ -223,43 +247,81 @@ class SchedulePage extends GetView<ScheduleController> {
 
 class _ScheduleHeading extends StatelessWidget {
   const _ScheduleHeading({
-    required this.days,
+    required this.title,
     required this.teachingWeek,
+    required this.days,
     required this.isCurrentWeek,
-    required this.weekDirection,
-    required this.onPrevious,
-    required this.onNext,
+    required this.onWeek,
+    required this.onSettings,
     required this.onToday,
   });
 
-  final List<DateTime> days;
+  /// 课表名称，占用原来「课表」标题的位置。
+  final String? title;
   final int? teachingWeek;
+  final List<DateTime> days;
   final bool isCurrentWeek;
-  final int weekDirection;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
+  final VoidCallback onWeek;
+  final VoidCallback onSettings;
   final VoidCallback onToday;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final colors = context.colors;
+    final name = (title ?? '').trim();
+    final weekLabel = teachingWeek == null ? '学期外' : '第 $teachingWeek 周';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              '课表',
-              key: const ValueKey('schedule-heading'),
-              style: text.titleLarge,
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: Text(
+                      name.isEmpty ? '我的课表' : name,
+                      key: const ValueKey('schedule-heading'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: text.titleLarge,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpace.sm),
+                  Text(
+                    weekLabel,
+                    key: const ValueKey('schedule-week-label'),
+                    style: text.labelMedium?.copyWith(
+                      color: colors.inkMuted,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const Spacer(),
-            ScheduleWeekSwitcher(
-              teachingWeek: teachingWeek,
-              direction: weekDirection,
-              onPrevious: onPrevious,
-              onNext: onNext,
+            const SizedBox(width: AppSpace.sm),
+            ScheduleWeekButton(onTap: onWeek),
+            const SizedBox(width: AppSpace.xs),
+            Tooltip(
+              message: '课表设置',
+              child: Pressable(
+                key: const ValueKey('schedule-settings-button'),
+                onTap: onSettings,
+                color: colors.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                semanticLabel: '课表设置',
+                splashColor: colors.ink.withValues(alpha: 0.08),
+                child: SizedBox(
+                  width: 34,
+                  height: 34,
+                  child: Icon(AppIcons.settings, size: 17, color: colors.ink),
+                ),
+              ),
             ),
           ],
         ),
@@ -269,6 +331,7 @@ class _ScheduleHeading extends StatelessWidget {
             Expanded(
               child: Text(
                 _formatDateRange(days),
+                key: const ValueKey('schedule-date-range'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: text.bodySmall,

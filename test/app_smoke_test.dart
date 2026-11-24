@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +13,6 @@ import 'package:qinghe_app/data/import/timetable_import.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:qinghe_app/features/profile/views/appearance_page.dart';
-import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_lesson_card.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
 import 'package:qinghe_app/features/shell/widgets/app_navigation.dart';
@@ -149,19 +148,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(shell.currentIndex.value, 1);
     expect(find.byKey(const ValueKey('schedule-grid')), findsOneWidget);
-    expect(find.byTooltip('上一周'), findsOneWidget);
-    expect(find.byTooltip('下一周'), findsOneWidget);
 
-    final schedule = Get.find<ScheduleController>();
-    expect(find.byKey(const ValueKey('schedule-week-today')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('schedule-week-next')));
+    // 顶部标题显示课表名称与周次，右侧是周次切换与设置按钮，下面是时间日期。
+    expect(find.byKey(const ValueKey('schedule-heading')), findsOneWidget);
+    expect(find.byKey(const ValueKey('schedule-week-label')), findsOneWidget);
+    expect(find.byKey(const ValueKey('schedule-week-button')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('schedule-settings-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('schedule-date-range')), findsOneWidget);
+    // 标题不再写「课表」，没有导入时退回「我的课表」。
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('schedule-heading'))).data,
+      isNot('课表'),
+    );
+
+    // 设置抽屉里放课表相关设置与考试信息。
+    await tester.tap(find.byKey(const ValueKey('schedule-settings-button')));
     await tester.pumpAndSettle();
-    expect(schedule.isCurrentWeek, isFalse);
-    expect(find.byKey(const ValueKey('schedule-week-today')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('schedule-week-today')));
+    expect(find.text('课表设置'), findsOneWidget);
+    expect(find.text('课表外观'), findsOneWidget);
+    expect(find.text('课表导入'), findsOneWidget);
+    expect(find.text('学期与节次'), findsOneWidget);
+    expect(find.text('考试信息'), findsOneWidget);
+    await tester.tap(find.byTooltip('关闭').first);
     await tester.pumpAndSettle();
-    expect(schedule.isCurrentWeek, isTrue);
-    expect(find.byKey(const ValueKey('schedule-week-today')), findsNothing);
+    expect(find.text('课表设置'), findsNothing);
 
     final todayHeader = tester.getSize(
       find.byKey(const ValueKey('schedule-today-header')),
@@ -490,15 +503,14 @@ void main() {
     await tester.tap(find.text('跳过'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('nav-profile')));
+    // 课表设置挪到了课表页顶部。
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
     await tester.pumpAndSettle();
-    final scheduleAppearanceEntry = find.text('课表外观');
-    await tester.scrollUntilVisible(
-      scheduleAppearanceEntry,
-      220,
-      scrollable: _scrollableIn('profile-scroll'),
+    await tester.tap(find.byKey(const ValueKey('schedule-settings-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('schedule-settings-appearance')),
     );
-    await tester.tap(scheduleAppearanceEntry);
     await tester.pumpAndSettle();
 
     final appearance = Get.find<AppearanceController>();

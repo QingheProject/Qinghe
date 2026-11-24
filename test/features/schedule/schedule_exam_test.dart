@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +9,7 @@ import 'package:qinghe_app/data/models/semester_config.dart';
 import 'package:qinghe_app/data/models/timetable_exam.dart';
 import 'package:qinghe_app/data/models/timetable_rule.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
+import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 以本周周一为第一教学周，保证考试落在当前显示的这一周里。
@@ -60,13 +61,6 @@ Map<String, Object> _seededPreferences({required List<TimetableExam> exams}) {
     }),
   };
 }
-
-Finder _scrollableIn(String key) => find
-    .descendant(
-      of: find.byKey(ValueKey(key)),
-      matching: find.byType(Scrollable),
-    )
-    .first;
 
 void main() {
   tearDown(Get.reset);
@@ -130,18 +124,13 @@ void main() {
 
     await tester.pumpWidget(const QingheApp());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('nav-profile')));
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('schedule-settings-button')));
     await tester.pumpAndSettle();
 
-    final entry = find.byKey(const ValueKey('profile-exams'));
-    await tester.scrollUntilVisible(
-      entry,
-      220,
-      scrollable: _scrollableIn('profile-scroll'),
-    );
     expect(find.text('1 场考试'), findsOneWidget);
-
-    await tester.tap(entry);
+    await tester.tap(find.byKey(const ValueKey('schedule-settings-exams')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('exam-list')), findsOneWidget);
@@ -158,22 +147,97 @@ void main() {
 
     await tester.pumpWidget(const QingheApp());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('nav-profile')));
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('schedule-settings-button')));
     await tester.pumpAndSettle();
 
-    final entry = find.byKey(const ValueKey('profile-exams'));
-    await tester.scrollUntilVisible(
-      entry,
-      220,
-      scrollable: _scrollableIn('profile-scroll'),
-    );
     expect(find.text('尚未读取考试安排'), findsOneWidget);
-
-    await tester.tap(entry);
+    await tester.tap(find.byKey(const ValueKey('schedule-settings-exams')));
     await tester.pumpAndSettle();
     expect(find.text('本学期还没有考试信息'), findsOneWidget);
 
     // 存在的课表会被读取出来，考试为空不影响其它数据。
     expect(Get.find<LocalTimetableRepository>().active?.rules, hasLength(1));
+  });
+
+  testWidgets('顶部标题是课表名称与周次，右侧是周次与设置按钮，下面是时间日期', (tester) async {
+    SharedPreferences.setMockInitialValues(_seededPreferences(exams: const []));
+
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+
+    final heading = tester.widget<Text>(
+      find.byKey(const ValueKey('schedule-heading')),
+    );
+    expect(heading.data, '示例学期');
+    final weekLabel = tester.widget<Text>(
+      find.byKey(const ValueKey('schedule-week-label')),
+    );
+    expect(weekLabel.data, '第 1 周');
+
+    final headingRect = tester.getRect(
+      find.byKey(const ValueKey('schedule-heading')),
+    );
+    final weekRect = tester.getRect(
+      find.byKey(const ValueKey('schedule-week-button')),
+    );
+    final settingsRect = tester.getRect(
+      find.byKey(const ValueKey('schedule-settings-button')),
+    );
+    final dateRect = tester.getRect(
+      find.byKey(const ValueKey('schedule-date-range')),
+    );
+
+    // 周次按钮与设置按钮在标题右侧，依次排列。
+    expect(weekRect.left, greaterThan(headingRect.right));
+    expect(settingsRect.left, greaterThan(weekRect.right));
+    // 时间日期在标题下面。
+    expect(dateRect.top, greaterThan(headingRect.bottom));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('顶部周次按钮打开抽屉，切换周次后可以回到本周', (tester) async {
+    final examDay = _monday.add(const Duration(days: 2));
+    SharedPreferences.setMockInitialValues(
+      _seededPreferences(
+        exams: [
+          TimetableExam(
+            id: 'E1',
+            courseName: '示例课程甲',
+            date: examDay,
+            startMinute: 9 * 60,
+            endMinute: 11 * 60,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('nav-schedule')));
+    await tester.pumpAndSettle();
+
+    // 标题显示课表名称与周次。
+    expect(find.text('示例学期'), findsOneWidget);
+    expect(find.byKey(const ValueKey('schedule-week-label')), findsOneWidget);
+
+    final schedule = Get.find<ScheduleController>();
+    expect(schedule.isCurrentWeek, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('schedule-week-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('切换周次'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('schedule-week-2')));
+    await tester.pumpAndSettle();
+    expect(schedule.isCurrentWeek, isFalse);
+    expect(find.text('切换周次'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('schedule-today-button')));
+    await tester.pumpAndSettle();
+    expect(schedule.isCurrentWeek, isTrue);
   });
 }

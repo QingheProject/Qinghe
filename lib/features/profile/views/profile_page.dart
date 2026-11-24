@@ -71,37 +71,6 @@ class ProfilePage extends StatelessWidget {
                 title: '设置',
                 children: [
                   AppListRow(
-                    icon: AppIcons.columns,
-                    title: '课表外观',
-                    subtitle: '尺寸、信息与间距',
-                    onTap: () =>
-                        Get.toNamed<void>(AppRoutes.scheduleAppearance),
-                  ),
-                  AppListRow(
-                    icon: AppIcons.upload,
-                    title: '课表导入',
-                    subtitle: '教务系统、CSV 或 JSON',
-                    onTap: () => Get.toNamed<void>(AppRoutes.timetableImport),
-                  ),
-                  AppListRow(
-                    icon: AppIcons.calendarCheck,
-                    title: '学期与节次',
-                    subtitle: '教学周与上课时间',
-                    onTap: () => Get.toNamed<void>(AppRoutes.semesterConfig),
-                  ),
-                  Obx(() {
-                    final exams = timetables.active?.exams ?? const [];
-                    return AppListRow(
-                      key: const ValueKey('profile-exams'),
-                      icon: AppIcons.clock,
-                      title: '考试信息',
-                      subtitle: exams.isEmpty
-                          ? '尚未读取考试安排'
-                          : '${exams.length} 场考试',
-                      onTap: () => Get.toNamed<void>(AppRoutes.exams),
-                    );
-                  }),
-                  AppListRow(
                     icon: AppIcons.palette,
                     title: '外观',
                     subtitle: '主题与配色',
