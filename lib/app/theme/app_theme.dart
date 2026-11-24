@@ -124,7 +124,10 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         modalElevation: 0,
-        modalBarrierColor: colors.ink.withValues(alpha: 0.32),
+        // 遮罩始终是黑色：暗色主题里 ink 是近白色，直接用它会把遮罩变亮。
+        modalBarrierColor: Colors.black.withValues(
+          alpha: brightness == Brightness.dark ? 0.62 : 0.32,
+        ),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppRadius.xl),
