@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -86,31 +86,37 @@ class CourseNotifications extends GetxService {
         ?.requestPermissions(alert: true, sound: true);
   }
 
-  /// 按当前课表与提醒设置重排所有提醒。
+  /// 按当前课表与提醒设置重排所有提醒（上课 + 考试）。
   Future<void> sync() async {
     if (!supported || !Get.isRegistered<LocalTimetableRepository>()) return;
     final repository = Get.find<LocalTimetableRepository>();
     final settings = Get.isRegistered<ReminderController>()
         ? Get.find<ReminderController>()
         : null;
-    final leadMinutes = settings?.leadMinutes.value ?? 0;
+    if (settings == null) return;
 
     await _plugin.cancelAll();
-    if (leadMinutes <= 0) return;
 
-    final today = DateTime.now();
+    final now = DateTime.now();
     final days = <(DateTime, List<LessonOccurrence>)>[
       for (var index = 0; index < reminderHorizonDays; index++)
         (
-          today.add(Duration(days: index)),
-          repository.lessonsOn(today.add(Duration(days: index))),
+          now.add(Duration(days: index)),
+          repository.lessonsOn(now.add(Duration(days: index))),
         ),
     ];
-    final plan = planCourseReminders(
-      now: DateTime.now(),
-      leadMinutes: leadMinutes,
-      days: days,
-    );
+    final plan = [
+      ...planCourseReminders(
+        now: now,
+        leadMinutes: settings.classLeadMinutes.value,
+        days: days,
+      ),
+      ...planExamReminders(
+        now: now,
+        leadMinutes: settings.examLeadMinutes.value,
+        exams: repository.active?.exams ?? const [],
+      ),
+    ]..sort((left, right) => left.when.compareTo(right.when));
 
     final android = _plugin
         .resolvePlatformSpecificImplementation<
@@ -119,7 +125,7 @@ class CourseNotifications extends GetxService {
     final canScheduleExact =
         await android?.canScheduleExactNotifications() ?? false;
 
-    for (final reminder in plan) {
+    for (final reminder in plan.take(reminderMaxCount)) {
       await _plugin.zonedSchedule(
         id: reminder.id,
         title: reminder.title,

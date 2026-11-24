@@ -5,7 +5,6 @@ import 'package:qinghe_app/app/reminder_controller.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
-import 'package:qinghe_app/features/profile/widgets/reminder_sheet.dart';
 import 'package:qinghe_app/features/profile/widgets/semester_progress_card.dart';
 import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
 
@@ -63,8 +62,10 @@ class ProfilePage extends StatelessWidget {
                       key: const ValueKey('profile-reminder'),
                       icon: AppIcons.notifications,
                       title: '课程提醒',
-                      subtitle: reminder.summary,
-                      onTap: () => showReminderSheet(context),
+                      subtitle: reminder.classEnabled
+                          ? '课前 \${reminder.classLeadMinutes.value} 分钟提醒'
+                          : '已关闭',
+                      onTap: () => Get.toNamed<void>(AppRoutes.reminders),
                     ),
                   ),
                   AppListRow(

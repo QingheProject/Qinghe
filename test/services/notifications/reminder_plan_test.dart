@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
+import 'package:qinghe_app/data/models/timetable_exam.dart';
 import 'package:qinghe_app/services/notifications/reminder_plan.dart';
 
 LessonOccurrence _lesson({
@@ -9,6 +10,7 @@ LessonOccurrence _lesson({
   int startPeriod = 1,
   int endPeriod = 2,
   String location = '',
+  String courseId = '',
 }) => LessonOccurrence(
   id: '$name-$startMinute',
   courseName: name,
@@ -17,6 +19,7 @@ LessonOccurrence _lesson({
   startMinute: startMinute,
   endMinute: startMinute + duration,
   location: location,
+  courseId: courseId,
 );
 
 void main() {
@@ -157,6 +160,78 @@ void main() {
         ],
       );
       expect(reminders.single.body, '10:00 · 第 3 节');
+    });
+  });
+
+  group('考试提醒', () {
+    final examDay = DateTime(2026, 11, 26);
+
+    TimetableExam exam({
+      required String id,
+      required String name,
+      int? startMinute = 9 * 60,
+      String location = '示例考场',
+      String seat = '12',
+    }) => TimetableExam(
+      id: id,
+      courseName: name,
+      date: examDay,
+      startMinute: startMinute,
+      location: location,
+      seat: seat,
+    );
+
+    test('按考前提前量算时间，正文含时间、考场与座位', () {
+      final reminders = planExamReminders(
+        now: now,
+        leadMinutes: 60,
+        exams: [exam(id: 'E1', name: '示例课程甲')],
+      );
+
+      expect(reminders, hasLength(1));
+      final reminder = reminders.single;
+      expect(reminder.when, DateTime(2026, 11, 26, 8, 0));
+      expect(reminder.title, '示例课程甲 考试即将开始');
+      expect(reminder.body, '09:00 · 示例考场 · 座位 12');
+    });
+
+    test('关闭考试提醒时不排', () {
+      expect(
+        planExamReminders(
+          now: now,
+          leadMinutes: 0,
+          exams: [exam(id: 'E1', name: '示例课程甲')],
+        ),
+        isEmpty,
+      );
+    });
+
+    test('没有具体时间的考试不排，已经考完的不排', () {
+      final reminders = planExamReminders(
+        now: now,
+        leadMinutes: 60,
+        exams: [
+          exam(id: 'E1', name: '无时间考试', startMinute: null),
+          TimetableExam(
+            id: 'E2',
+            courseName: '已经考完',
+            date: DateTime(2026, 11, 20),
+            startMinute: 9 * 60,
+          ),
+          exam(id: 'E3', name: '还没考的'),
+        ],
+      );
+
+      expect(reminders.map((item) => item.title), ['还没考的 考试即将开始']);
+    });
+
+    test('考试提醒编号与上课提醒不冲突', () {
+      final lessonId = reminderIdFor(examDay, 1);
+      final examIds = {
+        for (final id in ['E1', 'E2', 'E3']) examReminderIdFor(examDay, id),
+      };
+      expect(examIds, hasLength(3));
+      expect(examIds.contains(lessonId), isFalse);
     });
   });
 }

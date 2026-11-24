@@ -36,6 +36,14 @@ class MainActivity : FlutterActivity() {
                         showLive(title, text, shortText, progress, max, chipColor)
                         result.success(null)
                     }
+                    "canPromote" -> {
+                        val can = if (Build.VERSION.SDK_INT >= 36) {
+                            notificationManager().canPostPromotedNotifications()
+                        } else {
+                            false
+                        }
+                        result.success(can)
+                    }
                     "cancel" -> {
                         notificationManager().cancel(notificationId)
                         result.success(null)
@@ -50,14 +58,17 @@ class MainActivity : FlutterActivity() {
 
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        // 实时通知用低重要度渠道：不上横幅、不响铃，只占状态栏与锁屏。
+        // 实时通知要能「上岛」，渠道重要度必须是 DEFAULT 或更高；
+        // 用新 id 是因为渠道建好之后重要度改不了。
         val channel = NotificationChannel(
             CHANNEL_ID,
             "上课进行中",
-            NotificationManager.IMPORTANCE_LOW,
+            NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
-            description = "上课期间展示当前课程与进度"
+            description = "上课期间展示当前课程与进度，可在状态栏胶囊与锁屏上看到"
             setShowBadge(false)
+            enableVibration(false)
+            setSound(null, null)
         }
         notificationManager().createNotificationChannel(channel)
     }
@@ -107,7 +118,21 @@ class MainActivity : FlutterActivity() {
             builder.setProgress(max, progress, false)
         }
 
-        notificationManager().notify(notificationId, builder.build())
+        val notification = builder.build()
+        if (Build.VERSION.SDK_INT >= 36) {
+            // 关键一步：申请「晋升」为实时通知，状态栏胶囊 / 岛才会出现。
+            // 平台没有公开的 builder 方法，直接置标记位（NotificationCompat 内部也是这么做的）。
+            notification.flags = notification.flags or Notification.FLAG_PROMOTED_ONGOING
+        }
+        val canPromote =
+            Build.VERSION.SDK_INT >= 36 && notificationManager().canPostPromotedNotifications()
+        android.util.Log.i(
+            LOG_TAG,
+            "notify flags=0x" + notification.flags.toString(16) +
+                " promotedBit=0x" + Notification.FLAG_PROMOTED_ONGOING.toString(16) +
+                " canPostPromoted=$canPromote",
+        )
+        notificationManager().notify(notificationId, notification)
     }
 
     /**
@@ -141,6 +166,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private companion object {
-        const val CHANNEL_ID = "class_live"
+        const val CHANNEL_ID = "class_live_v2"
+        const val LOG_TAG = "QingheLive"
     }
 }

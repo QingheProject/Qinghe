@@ -8,6 +8,7 @@
   static const timetableImport = '/timetable-import';
   static const jsonImport = '/json-import';
   static const addLesson = '/add-lesson';
+  static const reminders = '/reminders';
   static const semesterConfig = '/semester-config';
   static const exams = '/exams';
   static const jwxtImport = '/jwxt-import';

@@ -7,36 +7,56 @@ void main() {
 
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  test('默认提前 15 分钟提醒', () async {
+  test('默认上课提前 15 分钟、考试提前 1 小时', () async {
     final controller = ReminderController();
     await controller.load();
 
-    expect(controller.leadMinutes.value, 15);
-    expect(controller.enabled, isTrue);
-    expect(controller.summary, '课前 15 分钟提醒');
+    expect(controller.classLeadMinutes.value, 15);
+    expect(controller.examLeadMinutes.value, 60);
+    expect(controller.classEnabled, isTrue);
+    expect(controller.examEnabled, isTrue);
   });
 
-  test('修改后会写进本地存储，重新读取仍然生效', () async {
+  test('自定义的时间会写进本地存储，重新读取仍然生效', () async {
     final controller = ReminderController();
-    await controller.setLeadMinutes(30);
+    await controller.setClassLeadMinutes(7);
+    await controller.setExamLeadMinutes(90);
 
     final reopened = ReminderController();
     await reopened.load();
-    expect(reopened.leadMinutes.value, 30);
+    expect(reopened.classLeadMinutes.value, 7);
+    expect(reopened.examLeadMinutes.value, 90);
   });
 
-  test('设为 0 表示关闭提醒', () async {
+  test('关闭开关后提前量变成 0，再打开会恢复默认值', () async {
     final controller = ReminderController();
-    await controller.setLeadMinutes(0);
+    await controller.setClassEnabled(false);
+    expect(controller.classLeadMinutes.value, 0);
+    expect(controller.classEnabled, isFalse);
 
-    expect(controller.enabled, isFalse);
-    expect(controller.summary, '已关闭');
+    await controller.setClassEnabled(true);
+    expect(
+      controller.classLeadMinutes.value,
+      ReminderController.defaultClassLeadMinutes,
+    );
   });
 
-  test('负数会被忽略，不会写入存储', () async {
+  test('提前量被夹在 1 分钟到 2 天之间，负数当作关闭', () async {
     final controller = ReminderController();
-    await controller.setLeadMinutes(-5);
+    await controller.setExamLeadMinutes(99999);
+    expect(controller.examLeadMinutes.value, ReminderController.maxLeadMinutes);
 
-    expect(controller.leadMinutes.value, 15);
+    await controller.setExamLeadMinutes(-5);
+    expect(controller.examLeadMinutes.value, 0);
+  });
+
+  test('旧版本的单一提前量会迁移到上课提醒', () async {
+    SharedPreferences.setMockInitialValues({
+      'course_reminder_lead_minutes_v1': 10,
+    });
+    final controller = ReminderController();
+    await controller.load();
+
+    expect(controller.classLeadMinutes.value, 10);
   });
 }
