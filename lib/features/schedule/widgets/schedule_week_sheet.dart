@@ -382,11 +382,15 @@ class ScheduleTodayButton extends StatelessWidget {
   const ScheduleTodayButton({
     required this.visible,
     required this.onTap,
+    this.label = '回到本周',
     super.key,
   });
 
   final bool visible;
   final VoidCallback onTap;
+
+  /// 文案随视图变化：日视图「回到今天」、月视图「回到本月」。
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -410,7 +414,7 @@ class ScheduleTodayButton extends StatelessWidget {
                     onTap: onTap,
                     color: colors.accentSoft,
                     borderRadius: BorderRadius.circular(AppRadius.xs),
-                    semanticLabel: '回到本周',
+                    semanticLabel: label,
                     splashColor: colors.accent.withValues(alpha: 0.16),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -419,7 +423,7 @@ class ScheduleTodayButton extends StatelessWidget {
                       ),
                       child: ExcludeSemantics(
                         child: Text(
-                          '回到本周',
+                          label,
                           style: text.labelSmall?.copyWith(
                             color: colors.accent,
                             fontWeight: FontWeight.w700,

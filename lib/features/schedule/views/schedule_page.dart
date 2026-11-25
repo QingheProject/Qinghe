@@ -16,10 +16,13 @@ import 'package:qinghe_app/features/course_edit/views/add_lesson_page.dart';
 import 'package:qinghe_app/features/home/widgets/lesson_sheet.dart';
 import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
 import 'package:qinghe_app/features/schedule/widgets/exam_sheet.dart';
+import 'package:qinghe_app/features/schedule/widgets/schedule_day_view.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_exam_card.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_lesson_card.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_period_label.dart';
+import 'package:qinghe_app/features/schedule/widgets/schedule_month_view.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_settings_sheet.dart';
+import 'package:qinghe_app/features/schedule/widgets/schedule_view_switcher.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_week_sheet.dart';
 
 const _weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];
@@ -57,6 +60,20 @@ class SchedulePage extends GetView<ScheduleController> {
   /// 切周时整张课表淡入淡出，不再左右平移。
   Widget _weekFadeTransition(Widget child, Animation<double> animation) {
     return FadeTransition(opacity: animation, child: child);
+  }
+
+  /// 「回到本周」按当前视图回位：日回今天、周回本周、月回本月。
+  VoidCallback _onToday(ScheduleController controller) {
+    return () {
+      switch (controller.viewMode.value) {
+        case ScheduleViewMode.day:
+          _shiftWeek(controller.goToToday);
+        case ScheduleViewMode.week:
+          _shiftWeek(controller.goToCurrentWeek);
+        case ScheduleViewMode.month:
+          _shiftWeek(controller.goToCurrentMonth);
+      }
+    };
   }
 
   /// 点课表空白格：先放一个加号占位，已经占位的格子则清掉。
@@ -101,6 +118,17 @@ class SchedulePage extends GetView<ScheduleController> {
     }
   }
 
+  /// 周/月视图共用的一层竖向滚动，日视图自己滚动所以不包这层。
+  Widget _scrollable(BuildContext context, Widget child) {
+    return SingleChildScrollView(
+      key: const ValueKey('schedule-grid-scroll'),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.paddingOf(context).bottom + 96,
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appearance = Get.find<AppearanceController>();
@@ -112,6 +140,11 @@ class SchedulePage extends GetView<ScheduleController> {
         final days = appearance.scheduleShowWeekend.value
             ? allDays
             : allDays.take(DateTime.friday).toList(growable: false);
+        // 日视图只显示选中的那一天；周末开关在日视图不裁剪（单列）。
+        final viewDays = switch (controller.viewMode.value) {
+          ScheduleViewMode.day => [controller.displayedDate],
+          _ => days,
+        };
         final railTextLayout = appearance.scheduleRailTextLayout.value;
         final timeRailWidth = SchedulePeriodLabel.railWidthFor(
           showTime: appearance.scheduleShowTime.value,
@@ -128,148 +161,179 @@ class SchedulePage extends GetView<ScheduleController> {
                   child: _ScheduleHeading(
                     title: controller.timetableName,
                     teachingWeek: controller.teachingWeek,
-                    isCurrentWeek: controller.isCurrentWeek,
+                    displayedDate: controller.displayedDate,
+                    isCurrentView: controller.isCurrentView,
+                    todayLabel: controller.currentViewLabel,
                     onWeek: () => _openWeekSheet(controller),
                     onSettings: () => showScheduleSettingsSheet(context),
-                    onToday: () => _shiftWeek(controller.goToCurrentWeek),
+                    onToday: _onToday(controller),
+                    viewMode: controller.viewMode.value,
+                    onViewMode: controller.switchView,
                   ),
                 ),
-                const SizedBox(height: AppSpace.xs),
-                _WeekdayHeader(
-                  days: days,
-                  today: controller.today,
-                  timeRailWidth: timeRailWidth,
-                  teachingWeek: controller.teachingWeek,
-                  examDays: {
-                    for (final date in days)
-                      if (controller.examsOn(date).isNotEmpty)
-                        DateTime(date.year, date.month, date.day),
-                  },
-                ),
+                // 只有周视图需要星期表头；日视图是时间线，月视图自带星期行。
+                if (controller.viewMode.value == ScheduleViewMode.week) ...[
+                  const SizedBox(height: AppSpace.xs),
+                  _WeekdayHeader(
+                    days: viewDays,
+                    today: controller.today,
+                    timeRailWidth: timeRailWidth,
+                    teachingWeek: controller.teachingWeek,
+                    examDays: {
+                      for (final date in viewDays)
+                        if (controller.examsOn(date).isNotEmpty)
+                          DateTime(date.year, date.month, date.day),
+                    },
+                  ),
+                ],
                 const SizedBox(height: AppSpace.sm),
                 Expanded(
-                  child: SingleChildScrollView(
-                    key: const ValueKey('schedule-grid-scroll'),
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.paddingOf(context).bottom + 96,
-                    ),
-                    child: ClipRect(
-                      // 切换周次时课程淡入淡出，不做平移，避免整屏晃动。
-                      child: AnimatedSwitcher(
-                        duration: AppMotion.of(
-                          context,
-                          const Duration(milliseconds: 260),
-                        ),
-                        switchInCurve: AppMotion.emphasized,
-                        switchOutCurve: AppMotion.emphasized,
-                        layoutBuilder: (current, previous) => Stack(
-                          alignment: Alignment.topCenter,
-                          children: [
-                            for (final child in previous) child,
-                            if (current != null) current,
-                          ],
-                        ),
-                        transitionBuilder: _weekFadeTransition,
-                        child: KeyedSubtree(
-                          key: ValueKey(controller.weekStart.value),
-                          child: _WeekGrid(
-                            key: const ValueKey('schedule-grid'),
-                            days: days,
-                            today: controller.today,
-                            currentMinute: controller.currentMinute,
-                            timeRailWidth: timeRailWidth,
-                            rowHeight: appearance.scheduleRowHeight.value,
+                  // 日视图自己竖向滚动，周/月视图由 _scrollable 包一层滚动。
+                  child: ClipRect(
+                    // 切换周次时课程淡入淡出，不做平移，避免整屏晃动。
+                    child: AnimatedSwitcher(
+                      duration: AppMotion.of(
+                        context,
+                        const Duration(milliseconds: 260),
+                      ),
+                      switchInCurve: AppMotion.emphasized,
+                      switchOutCurve: AppMotion.emphasized,
+                      layoutBuilder: (current, previous) => Stack(
+                        alignment: Alignment.topCenter,
+                        children: [
+                          for (final child in previous) child,
+                          if (current != null) current,
+                        ],
+                      ),
+                      transitionBuilder: _weekFadeTransition,
+                      child: KeyedSubtree(
+                        key: ValueKey(switch (controller.viewMode.value) {
+                          ScheduleViewMode.month => controller.displayedMonth,
+                          ScheduleViewMode.day => controller.displayedDate,
+                          ScheduleViewMode.week => controller.weekStart.value,
+                        }),
+                        // 日视图是时间线，月视图是整月日历，周视图是节次网格。
+                        child: switch (controller.viewMode.value) {
+                          ScheduleViewMode.day => ScheduleDayView(
+                            controller: controller,
                             colorScheme: appearance.courseColorScheme.value,
                             saturation:
                                 appearance.scheduleCourseSaturation.value,
-                            cardWidthFactor: appearance.scheduleCardWidth.value,
-                            cardInset: appearance.scheduleCardInset.value,
-                            verticalInset:
-                                appearance.scheduleVerticalInset.value,
-                            cardOpacity: appearance.scheduleCardOpacity.value,
-                            cardRadius: appearance.scheduleCardRadius.value,
-                            showBorder: appearance.scheduleShowBorder.value,
-                            borderWidth: appearance.scheduleBorderWidth.value,
-                            showTopLine: appearance.scheduleShowTopLine.value,
-                            showLocation: appearance.scheduleShowLocation.value,
-                            showTeacher: appearance.scheduleShowTeacher.value,
-                            textLayout: appearance.scheduleTextLayout.value,
-                            showTime: appearance.scheduleShowTime.value,
-                            timeAlignment:
-                                appearance.scheduleTimeAlignment.value,
-                            startTimes:
-                                config?.periodStartTimes ??
-                                appearance.scheduleStartTimes.toList(),
-                            periodDuration:
-                                config?.periodDurationMinutes ??
-                                appearance.schedulePeriodDuration.value.round(),
-                            railTextLayout: railTextLayout,
-                            showCurrentTimeLine:
-                                appearance.scheduleShowCurrentTimeLine.value,
-                            showGridLines:
-                                appearance.scheduleShowGridLines.value,
-                            ghost: controller.ghostSlot.value,
-                            onTapSlot: (dayIndex, period) => _handleSlotTap(
-                              controller,
-                              days,
-                              dayIndex,
-                              period,
-                            ),
-                            onTapGhost: () => _openAddLesson(controller, days),
-                            lessonsOn: controller.lessonsOn,
-                            examsOn: controller.examsOn,
-                            examSlot: (exam) =>
-                                controller.activeTimetable?.examLayout(exam),
-                            examColorIndex: (exam) =>
-                                controller.activeTimetable?.examColorIndex(
-                                  exam,
-                                ) ??
-                                0,
-                            onOpenExam: (exam, origin) {
-                              controller.clearGhost();
-                              // 与课程卡一致：对话框从这张卡的底色与圆角长出来。
-                              final table = controller.activeTimetable;
-                              final tone = CoursePalette.of(
-                                context,
-                                table?.examColorIndex(exam) ?? 0,
-                                appearance.courseColorScheme.value,
-                                appearance.scheduleCourseSaturation.value,
-                              );
-                              showExamDialog(
-                                context,
-                                exam,
-                                colorIndex: table?.examColorIndex(exam) ?? 0,
-                                origin: origin,
-                                originColor: tone.background.withValues(
-                                  alpha: appearance.scheduleCardOpacity.value,
-                                ),
-                                originRadius:
-                                    appearance.scheduleCardRadius.value,
-                              );
-                            },
-                            onOpen: (lesson, origin) {
-                              // 点已有课程时收起空白格里的占位。
-                              controller.clearGhost();
-                              // 对话框从这张卡片的底色与圆角长出来，再过渡到主题底色。
-                              final tone = CoursePalette.of(
-                                context,
-                                lesson.colorIndex,
-                                appearance.courseColorScheme.value,
-                                appearance.scheduleCourseSaturation.value,
-                              );
-                              showLessonDialog(
-                                context,
-                                lesson,
-                                origin: origin,
-                                originColor: tone.background.withValues(
-                                  alpha: appearance.scheduleCardOpacity.value,
-                                ),
-                                originRadius:
-                                    appearance.scheduleCardRadius.value,
-                              );
-                            },
                           ),
-                        ),
+                          ScheduleViewMode.month => _scrollable(
+                            context,
+                            ScheduleMonthView(
+                              controller: controller,
+                              colorScheme: appearance.courseColorScheme.value,
+                              saturation:
+                                  appearance.scheduleCourseSaturation.value,
+                            ),
+                          ),
+                          ScheduleViewMode.week => _scrollable(
+                            context,
+                            _WeekGrid(
+                              key: const ValueKey('schedule-grid'),
+                              days: viewDays,
+                              today: controller.today,
+                              currentMinute: controller.currentMinute,
+                              timeRailWidth: timeRailWidth,
+                              rowHeight: appearance.scheduleRowHeight.value,
+                              colorScheme: appearance.courseColorScheme.value,
+                              saturation:
+                                  appearance.scheduleCourseSaturation.value,
+                              cardWidthFactor:
+                                  appearance.scheduleCardWidth.value,
+                              cardInset: appearance.scheduleCardInset.value,
+                              verticalInset:
+                                  appearance.scheduleVerticalInset.value,
+                              cardOpacity: appearance.scheduleCardOpacity.value,
+                              cardRadius: appearance.scheduleCardRadius.value,
+                              showBorder: appearance.scheduleShowBorder.value,
+                              borderWidth: appearance.scheduleBorderWidth.value,
+                              showTopLine: appearance.scheduleShowTopLine.value,
+                              showLocation:
+                                  appearance.scheduleShowLocation.value,
+                              showTeacher: appearance.scheduleShowTeacher.value,
+                              textLayout: appearance.scheduleTextLayout.value,
+                              showTime: appearance.scheduleShowTime.value,
+                              timeAlignment:
+                                  appearance.scheduleTimeAlignment.value,
+                              startTimes:
+                                  config?.periodStartTimes ??
+                                  appearance.scheduleStartTimes.toList(),
+                              periodDuration:
+                                  config?.periodDurationMinutes ??
+                                  appearance.schedulePeriodDuration.value
+                                      .round(),
+                              railTextLayout: railTextLayout,
+                              showCurrentTimeLine:
+                                  appearance.scheduleShowCurrentTimeLine.value,
+                              showGridLines:
+                                  appearance.scheduleShowGridLines.value,
+                              ghost: controller.ghostSlot.value,
+                              onTapSlot: (dayIndex, period) => _handleSlotTap(
+                                controller,
+                                days,
+                                dayIndex,
+                                period,
+                              ),
+                              onTapGhost: () =>
+                                  _openAddLesson(controller, days),
+                              lessonsOn: controller.lessonsOn,
+                              examsOn: controller.examsOn,
+                              examSlot: (exam) =>
+                                  controller.activeTimetable?.examLayout(exam),
+                              examColorIndex: (exam) =>
+                                  controller.activeTimetable?.examColorIndex(
+                                    exam,
+                                  ) ??
+                                  0,
+                              onOpenExam: (exam, origin) {
+                                controller.clearGhost();
+                                // 与课程卡一致：对话框从这张卡的底色与圆角长出来。
+                                final table = controller.activeTimetable;
+                                final tone = CoursePalette.of(
+                                  context,
+                                  table?.examColorIndex(exam) ?? 0,
+                                  appearance.courseColorScheme.value,
+                                  appearance.scheduleCourseSaturation.value,
+                                );
+                                showExamDialog(
+                                  context,
+                                  exam,
+                                  colorIndex: table?.examColorIndex(exam) ?? 0,
+                                  origin: origin,
+                                  originColor: tone.background.withValues(
+                                    alpha: appearance.scheduleCardOpacity.value,
+                                  ),
+                                  originRadius:
+                                      appearance.scheduleCardRadius.value,
+                                );
+                              },
+                              onOpen: (lesson, origin) {
+                                // 点已有课程时收起空白格里的占位。
+                                controller.clearGhost();
+                                // 对话框从这张卡片的底色与圆角长出来，再过渡到主题底色。
+                                final tone = CoursePalette.of(
+                                  context,
+                                  lesson.colorIndex,
+                                  appearance.courseColorScheme.value,
+                                  appearance.scheduleCourseSaturation.value,
+                                );
+                                showLessonDialog(
+                                  context,
+                                  lesson,
+                                  origin: origin,
+                                  originColor: tone.background.withValues(
+                                    alpha: appearance.scheduleCardOpacity.value,
+                                  ),
+                                  originRadius:
+                                      appearance.scheduleCardRadius.value,
+                                );
+                              },
+                            ),
+                          ),
+                        },
                       ),
                     ),
                   ),
@@ -287,27 +351,48 @@ class _ScheduleHeading extends StatelessWidget {
   const _ScheduleHeading({
     required this.title,
     required this.teachingWeek,
-    required this.isCurrentWeek,
+    required this.displayedDate,
+    required this.isCurrentView,
+    required this.todayLabel,
     required this.onWeek,
     required this.onSettings,
     required this.onToday,
+    required this.viewMode,
+    required this.onViewMode,
   });
 
   /// 课表名称，放在标题区右下角。
   final String? title;
   final int? teachingWeek;
 
-  final bool isCurrentWeek;
+  /// 日视图显示的是哪一天。
+  final DateTime displayedDate;
+
+  final bool isCurrentView;
+  final String todayLabel;
   final VoidCallback onWeek;
   final VoidCallback onSettings;
   final VoidCallback onToday;
+
+  /// 当前的显示粒度与切换回调。
+  final ScheduleViewMode viewMode;
+  final ValueChanged<ScheduleViewMode> onViewMode;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final colors = context.colors;
     final name = (title ?? '').trim();
-    final weekLabel = teachingWeek == null ? '学期外' : '第$teachingWeek周';
+    final isDay = viewMode == ScheduleViewMode.day;
+    // 日视图的大标题变成当天日期，切换日期时文字向上跳进顶栏。
+    final weekLabel = isDay
+        ? '${displayedDate.month}月${displayedDate.day}日'
+        : (teachingWeek == null ? '学期外' : '第$teachingWeek周');
+    final hint = isDay
+        ? '周${_weekdayLabels[displayedDate.weekday - 1]}'
+              '${teachingWeek == null ? '' : ' · 第$teachingWeek周'}'
+              '${name.isEmpty ? '' : ' · $name'}'
+        : (name.isEmpty ? '我的课表' : name);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -317,23 +402,44 @@ class _ScheduleHeading extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 周次在左上角，字号比课表名称大一级。
-              Text(
-                weekLabel,
-                key: const ValueKey('schedule-week-label'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: text.titleLarge?.copyWith(
-                  color: colors.ink,
-                  height: 1.15,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              // 周次 / 日期在左上角，字号比课表名称大一级。
+              AnimatedSwitcher(
+                duration: AppMotion.of(context, AppMotion.fast),
+                switchInCurve: AppMotion.emphasized,
+                switchOutCurve: AppMotion.emphasized,
+                layoutBuilder: (current, previous) => Stack(
+                  alignment: Alignment.centerLeft,
+                  children: [
+                    for (final child in previous) child,
+                    if (current != null) current,
+                  ],
+                ),
+                transitionBuilder: (child, animation) => SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.6),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child: Text(
+                  weekLabel,
+                  key: ValueKey(
+                    isDay ? 'schedule-day-label' : 'schedule-week-label',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.titleLarge?.copyWith(
+                    color: colors.ink,
+                    height: 1.15,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
               const SizedBox(height: 1),
-              // 课表名称紧跟在周次下面。
+              // 课表名称 / 当天说明紧跟在下面。
               Text(
-                name.isEmpty ? '我的课表' : name,
+                hint,
                 key: const ValueKey('schedule-heading'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -346,8 +452,15 @@ class _ScheduleHeading extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpace.sm),
+        // 视图切换：日 / 周 / 月。
+        ScheduleViewSwitcher(mode: viewMode, onChanged: onViewMode),
+        const SizedBox(width: AppSpace.xs),
         // 右侧动作组：回到本周 + 两个图标按钮，整体在两行文字之间竖直居中。
-        ScheduleTodayButton(visible: !isCurrentWeek, onTap: onToday),
+        ScheduleTodayButton(
+          visible: !isCurrentView,
+          label: todayLabel,
+          onTap: onToday,
+        ),
         const SizedBox(width: AppSpace.xs),
         ScheduleWeekButton(onTap: onWeek),
         const SizedBox(width: AppSpace.xs),
