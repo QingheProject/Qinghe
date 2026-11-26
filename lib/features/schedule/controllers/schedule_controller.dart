@@ -10,7 +10,7 @@ import 'package:qinghe_app/data/models/timetable_exam.dart';
 typedef ScheduleClock = DateTime Function();
 
 /// 课表的显示粒度。
-enum ScheduleViewMode { day, week, month }
+enum ScheduleViewMode { day, week }
 
 class ScheduleController extends GetxController {
   ScheduleController(this._repository, {ScheduleClock clock = DateTime.now})
@@ -35,33 +35,28 @@ class ScheduleController extends GetxController {
   /// 日视图选中的那一天。
   final selectedDate = Rxn<DateTime>();
 
-  /// 月视图锚定的月份（该月的任意一天）。
-  final monthAnchor = Rxn<DateTime>();
-
   /// 最近一次切周的方向：1 表示向后，-1 表示向前，用于让过渡位移与手势一致。
   final weekDirection = 1.obs;
 
   /// 空白格里点出来的「加号占位」：点在哪一天、哪一节。
   final ghostSlot = Rxn<({int dayIndex, int period})>();
 
-  /// 切换显示粒度；月视图第一次进入时锚定到当前周。
+  /// 日视图当天小标题飞向顶栏的进度：0 停在列表里，1 已并入顶栏。
+  /// 顶栏据此在飞行途中让出自己的位置，避免出现两个日期。
+  final dayTitleFlight = 0.0.obs;
+
+  /// 切换显示粒度。
   void switchView(ScheduleViewMode mode) {
     if (viewMode.value == mode) return;
     clearGhost();
-    if (mode == ScheduleViewMode.month && monthAnchor.value == null) {
-      monthAnchor.value = DateTime(
-        currentWeekStart.year,
-        currentWeekStart.month,
-        1,
-      );
-    }
+    dayTitleFlight.value = 0;
     if (mode == ScheduleViewMode.day && selectedDate.value == null) {
       selectedDate.value = today;
     }
     viewMode.value = mode;
   }
 
-  /// 在月视图里点某一天：记为日视图的选择，并跳到日视图。
+  /// 在日期抽屉里点某一天：记为日视图的选择，并跳到日视图。
   void selectDay(DateTime date) {
     clearGhost();
     final day = _dateOnly(date);
@@ -193,70 +188,25 @@ class ScheduleController extends GetxController {
     weekStart.value = currentWeekStart;
   }
 
-  /// 月视图锚定的月份（未设置时用当前周所在月）。
-  DateTime get displayedMonth {
-    final anchor = monthAnchor.value;
-    if (anchor != null) return DateTime(anchor.year, anchor.month, 1);
-    return DateTime(currentWeekStart.year, currentWeekStart.month, 1);
-  }
-
-  void previousMonth() {
-    clearGhost();
-    final month = displayedMonth;
-    monthAnchor.value = DateTime(month.year, month.month - 1, 1);
-  }
-
-  void nextMonth() {
-    clearGhost();
-    final month = displayedMonth;
-    monthAnchor.value = DateTime(month.year, month.month + 1, 1);
-  }
-
-  /// 月视图的格子：从该月首周周一到覆盖月末那一周的周日，始终是整周的倍数。
-  List<DateTime> get monthCells {
-    final month = displayedMonth;
-    final firstMonday = _mondayOf(month);
-    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final lastDay = DateTime(month.year, month.month, daysInMonth);
-    final lastSunday = _mondayOf(lastDay).add(const Duration(days: 6));
-    return [
-      for (
-        var date = firstMonday;
-        !date.isAfter(lastSunday);
-        date = date.add(const Duration(days: 1))
-      )
-        date,
-    ];
-  }
-
-  bool get isCurrentMonth {
-    final now = _clock();
-    return displayedMonth == DateTime(now.year, now.month, 1);
-  }
-
-  void goToCurrentMonth() {
-    final now = _clock();
-    monthAnchor.value = DateTime(now.year, now.month, 1);
-  }
-
   int? get teachingWeek {
     return _repository.teachingWeekOn(displayedWeekStart);
   }
 
+  /// 某一天属于第几教学周，周视图分页据此显示每一页的周次。
+  int? teachingWeekOf(DateTime date) => _repository.teachingWeekOn(date);
+
   bool get isCurrentWeek => weekStart.value == currentWeekStart;
 
-  /// 当前视图是否已经停在「现在」：日视图看今天、周视图看本周、月视图看本月。
+  /// 当前视图是否已经停在「现在」：日视图看今天、周视图看本周。
   bool get isCurrentView => switch (viewMode.value) {
     ScheduleViewMode.day => isCurrentDate,
     ScheduleViewMode.week => isCurrentWeek,
-    ScheduleViewMode.month => isCurrentMonth,
   };
 
   /// 顶栏「回到…」按钮的文案。
   String get currentViewLabel => switch (viewMode.value) {
     ScheduleViewMode.day => '回到今天',
     ScheduleViewMode.week => '回到本周',
-    ScheduleViewMode.month => '回到本月',
   };
 
   List<LessonOccurrence> lessonsOn(DateTime date) =>

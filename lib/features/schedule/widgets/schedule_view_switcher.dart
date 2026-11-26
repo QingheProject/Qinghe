@@ -18,7 +18,6 @@ class ScheduleViewSwitcher extends StatelessWidget {
   static const _labels = {
     ScheduleViewMode.day: '日',
     ScheduleViewMode.week: '周',
-    ScheduleViewMode.month: '月',
   };
 
   @override

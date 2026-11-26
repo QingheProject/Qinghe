@@ -76,7 +76,7 @@ Future<ScheduleController> _boot(WidgetTester tester) async {
 void main() {
   tearDown(Get.reset);
 
-  testWidgets('默认是周视图，顶部提供日/周/月切换', (tester) async {
+  testWidgets('默认是周视图，顶部提供日/周切换', (tester) async {
     await _boot(tester);
 
     expect(
@@ -85,136 +85,98 @@ void main() {
     );
     expect(find.byKey(const ValueKey('schedule-view-week')), findsOneWidget);
     expect(find.byKey(const ValueKey('schedule-view-day')), findsOneWidget);
-    expect(find.byKey(const ValueKey('schedule-view-month')), findsOneWidget);
+    // 月视图已移除。
+    expect(find.byKey(const ValueKey('schedule-view-month')), findsNothing);
     // 周视图显示整周课程。
     expect(find.text('示例课程甲'), findsOneWidget);
     expect(find.text('示例课程乙'), findsOneWidget);
   });
 
-  testWidgets('日视图是横向日期轴 + 竖向时间线，顶栏显示当天', (tester) async {
+  testWidgets('日视图是一整条时间线：所有天都带小标题，没课的天画虚线', (tester) async {
     final controller = await _boot(tester);
 
     await tester.tap(find.byKey(const ValueKey('schedule-view-day')));
     await tester.pumpAndSettle();
 
-    // 横向日期轴与纵向地铁线时间线都在；不再复用节次网格与星期表头。
+    // 时间是整学期的连续列表，不是一天一页；也不复用节次网格与星期表头。
     expect(find.byKey(const ValueKey('schedule-day-view')), findsOneWidget);
-    expect(find.byKey(const ValueKey('schedule-day-axis')), findsOneWidget);
+    expect(find.byKey(const ValueKey('schedule-day-list')), findsOneWidget);
     expect(find.byKey(const ValueKey('schedule-grid')), findsNothing);
     expect(find.byKey(const ValueKey('schedule-rail-week')), findsNothing);
 
-    // 顶栏的大标题变成当天日期。
+    // 列表里每天都有小标题，没课的天给出虚线占位。
+    expect(find.byKey(const ValueKey('schedule-day-title')), findsWidgets);
+    expect(find.byKey(const ValueKey('schedule-day-empty')), findsWidgets);
+
+    // 顶栏大标题是当天日期。
+    final today = controller.today;
     final heading = tester.widget<Text>(
       find.byKey(const ValueKey('schedule-day-label')),
     );
-    final today = controller.today;
     expect(heading.data, '${today.month}月${today.day}日');
-
-    // 点日期轴上的周一，跳到那天的时间线，顶栏跟着变。
-    final mondayChip = find.byKey(
-      ValueKey('schedule-axis-${_monday.year}${_monday.month}${_monday.day}'),
-    );
-    expect(mondayChip, findsOneWidget);
-    await tester.tap(mondayChip);
-    await tester.pumpAndSettle();
-
-    expect(controller.displayedDate, _monday);
-    final updated = tester.widget<Text>(
-      find.byKey(const ValueKey('schedule-day-label')),
-    );
-    expect(updated.data, '${_monday.month}月${_monday.day}日');
-    expect(find.text('示例课程甲'), findsOneWidget);
-    expect(find.text('示例课程乙'), findsNothing);
   });
 
-  testWidgets('日视图只显示选中那天的课，可以前后翻天', (tester) async {
+  testWidgets('进入日视图时列表停在今天所在的那一天', (tester) async {
     final controller = await _boot(tester);
 
     await tester.tap(find.byKey(const ValueKey('schedule-view-day')));
     await tester.pumpAndSettle();
 
-    // 翻到周一，只显示示例课程甲。
-    controller.goToDate(_monday);
-    await tester.pumpAndSettle();
-    expect(find.text('示例课程甲'), findsOneWidget);
-    expect(find.text('示例课程乙'), findsNothing);
-
-    // 再翻一天到周二：都没有课。
-    controller.nextDate();
-    await tester.pumpAndSettle();
-    expect(find.text('示例课程甲'), findsNothing);
-    expect(find.text('示例课程乙'), findsNothing);
-    expect(find.text('这天没有课'), findsOneWidget);
-
-    // 翻到周三：只显示示例课程乙。
-    controller.nextDate();
-    await tester.pumpAndSettle();
-    expect(find.text('示例课程乙'), findsOneWidget);
-    expect(find.text('示例课程甲'), findsNothing);
-  });
-
-  testWidgets('月视图显示整月日历，点某天跳到日视图', (tester) async {
-    final controller = await _boot(tester);
-
-    await tester.tap(find.byKey(const ValueKey('schedule-view-month')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('schedule-month-view')), findsOneWidget);
-    // 今天的格子和带课的格子都在。
     final today = controller.today;
-    expect(
-      find.byKey(
-        ValueKey('schedule-month-cell-${today.year}${today.month}${today.day}'),
-      ),
-      findsOneWidget,
+    final section = find.byKey(
+      ValueKey('schedule-day-section-${today.year}${today.month}${today.day}'),
     );
-    // 周一那格存在且有课。
-    expect(
-      find.byKey(
-        ValueKey(
-          'schedule-month-cell-${_monday.year}${_monday.month}${_monday.day}',
-        ),
-      ),
-      findsOneWidget,
-    );
-
-    // 点周一跳到日视图并显示那天的课。
-    await tester.tap(
-      find.byKey(
-        ValueKey(
-          'schedule-month-cell-${_monday.year}${_monday.month}${_monday.day}',
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(controller.viewMode.value, ScheduleViewMode.day);
-    expect(controller.selectedDate.value, _monday);
-    expect(find.text('示例课程甲'), findsOneWidget);
+    expect(section, findsOneWidget);
+    final listTop = tester
+        .getRect(find.byKey(const ValueKey('schedule-day-list')))
+        .top;
+    // 今天的区块应该停在内容区顶部，而不是学期开头。
+    expect(tester.getRect(section).top, closeTo(listTop, 4));
+    // 日期轴已经移除。
+    expect(find.byKey(const ValueKey('schedule-day-axis')), findsNothing);
   });
 
-  testWidgets('月视图可以翻月，回到本月按钮回到当前月', (tester) async {
+  testWidgets('周视图左右滑动切周，页面跟手翻动而不是瞬移', (tester) async {
     final controller = await _boot(tester);
-    final now = DateTime.now();
+    final start = controller.weekStart.value;
+    final pages = find.byKey(const ValueKey('schedule-week-pages'));
+    expect(pages, findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('schedule-view-month')));
+    // 拖动一小段但不够翻页：页面已经跟着手移动，周次还没变。
+    final gesture = await tester.startGesture(tester.getCenter(pages));
+    // 先越过触摸阈值，再继续拖动，页面才会跟手移动。
+    await gesture.moveBy(const Offset(-20, 0));
+    await tester.pump();
+    await gesture.moveBy(const Offset(-100, 0));
+    await tester.pump();
+    expect(controller.weekStart.value, start);
+    final pageController = tester
+        .widget<PageView>(
+          find.descendant(of: pages, matching: find.byType(PageView)).first,
+        )
+        .controller!;
+    expect(pageController.page, greaterThan(0.1));
+    expect(pageController.page, lessThan(1.0));
+    await gesture.up();
     await tester.pumpAndSettle();
-    expect(find.text('${now.year}年${now.month}月'), findsOneWidget);
+    // 拖动不够一页，松手回到原来的一周。
+    expect(controller.weekStart.value, start);
+    expect(pageController.page, closeTo(0, 0.01));
 
-    controller.nextMonth();
+    // 向右回翻前，先向左快速翻一页。
+    await tester.fling(pages, const Offset(-320, 0), 1200);
     await tester.pumpAndSettle();
-    final nextMonth = DateTime(now.year, now.month + 1, 1);
-    expect(find.text('${nextMonth.year}年${nextMonth.month}月'), findsOneWidget);
-    // 离开本月后，顶栏出现「回到本月」。
-    final todayButton = find.byKey(const ValueKey('schedule-today-button'));
-    expect(todayButton, findsOneWidget);
-    expect(
-      find.descendant(of: todayButton, matching: find.text('回到本月')),
-      findsOneWidget,
-    );
+    expect(controller.weekStart.value, start.add(const Duration(days: 7)));
 
-    await tester.tap(todayButton);
+    // 向右回翻。
+    await tester.fling(pages, const Offset(320, 0), 1200);
     await tester.pumpAndSettle();
-    expect(find.text('${now.year}年${now.month}月'), findsOneWidget);
+    expect(controller.weekStart.value, start);
+
+    // 轻微抖动不会切周。
+    await tester.drag(pages, const Offset(-20, 0));
+    await tester.pumpAndSettle();
+    expect(controller.weekStart.value, start);
   });
 
   testWidgets('切回周视图时显示回整周课程', (tester) async {
@@ -228,5 +190,101 @@ void main() {
     expect(find.text('示例课程甲'), findsOneWidget);
     expect(find.text('示例课程乙'), findsOneWidget);
     expect(controller.viewMode.value, ScheduleViewMode.week);
+  });
+
+  testWidgets('日视图顶部按钮打开日历抽屉，点某天跳到那天', (tester) async {
+    final controller = await _boot(tester);
+
+    await tester.tap(find.byKey(const ValueKey('schedule-view-day')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('schedule-week-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('schedule-calendar-sheet')),
+      findsOneWidget,
+    );
+    expect(find.text('选择日期'), findsOneWidget);
+
+    // 点本周周一，抽屉关闭并跳到那天。
+    final mondayCell = find.byKey(
+      ValueKey(
+        'schedule-calendar-day-${_monday.year}${_monday.month}${_monday.day}',
+      ),
+    );
+    expect(mondayCell, findsOneWidget);
+    await tester.tap(mondayCell);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('schedule-calendar-sheet')), findsNothing);
+    expect(controller.viewMode.value, ScheduleViewMode.day);
+    expect(controller.selectedDate.value, _monday);
+    expect(
+      find.byKey(
+        ValueKey(
+          'schedule-day-section-${_monday.year}${_monday.month}${_monday.day}',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('滚动时当天标题飞出内容区，画在内容区之上而不是被裁掉', (tester) async {
+    await _boot(tester);
+
+    await tester.tap(find.byKey(const ValueKey('schedule-view-day')));
+    await tester.pumpAndSettle();
+
+    final list = find.byKey(const ValueKey('schedule-day-list'));
+    final listTop = tester.getRect(list).top;
+    final flying = find.byKey(const ValueKey('schedule-flying-title'));
+
+    // 还没滚动时，标题留在列表里，没有飞行层。
+    expect(flying, findsNothing);
+
+    // 往下滚一点点，让当天标题进入「飞向顶栏」的区间。
+    await tester.drag(list, const Offset(0, -18));
+    await tester.pumpAndSettle();
+
+    expect(flying, findsOneWidget);
+    final flyingRect = tester.getRect(
+      find.byKey(const ValueKey('schedule-flying-date')),
+    );
+    // 飞行标题已经越过内容区顶边，位于顶栏区域，说明没有被裁切遮盖。
+    expect(flyingRect.top, lessThan(listTop));
+
+    // 飞行途中顶栏的那份日期让位，避免两个日期同时出现；
+    // 飞行文字本身没有透明度变化。
+    final headerOpacity = tester.widget<Opacity>(
+      find
+          .ancestor(
+            of: find.byKey(const ValueKey('schedule-day-label')),
+            matching: find.byType(Opacity),
+          )
+          .first,
+    );
+    expect(headerOpacity.opacity, 0);
+    expect(
+      find.ancestor(
+        of: find.byKey(const ValueKey('schedule-flying-date')),
+        matching: find.byType(Opacity),
+      ),
+      findsNothing,
+    );
+
+    // 往回滚（多滚一点，抵消手势的触摸阈值），飞行层收回，标题回到列表里。
+    await tester.drag(list, const Offset(0, 40));
+    await tester.pumpAndSettle();
+    expect(flying, findsNothing);
+    final restored = tester.widget<Opacity>(
+      find
+          .ancestor(
+            of: find.byKey(const ValueKey('schedule-day-label')),
+            matching: find.byType(Opacity),
+          )
+          .first,
+    );
+    expect(restored.opacity, 1);
   });
 }

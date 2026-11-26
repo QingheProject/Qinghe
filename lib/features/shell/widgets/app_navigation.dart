@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -48,6 +48,18 @@ class AppTabBar extends StatelessWidget {
     super.key,
   });
 
+  /// 底栏本体高度（不含安全区与外边距）。
+  static const barHeight = 68.0;
+
+  /// 底栏实际占用的高度（含安全区与下边距）。
+  ///
+  /// 外壳用了 `extendBody`，页面内容会延伸到导航栏后面，
+  /// 需要避开底栏的悬浮元素用这个值。
+  static double occupiedHeight(BuildContext context) {
+    final inset = MediaQuery.paddingOf(context).bottom;
+    return barHeight + math.max(inset, 12) + 4;
+  }
+
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
@@ -58,7 +70,7 @@ class AppTabBar extends StatelessWidget {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     final bar = SizedBox(
-      height: 68,
+      height: barHeight,
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Stack(

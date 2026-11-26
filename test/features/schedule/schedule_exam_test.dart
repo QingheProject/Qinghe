@@ -67,8 +67,13 @@ void main() {
   tearDown(Get.reset);
 
   testWidgets('有考试的日子在课表里带标记，点开能看考试详情', (tester) async {
-    // 考试选在周四：周三可能撞上「今天」，今天的标记点会盖住考试点。
-    final examDay = _monday.add(const Duration(days: 3));
+    // 选一个不是「今天」的日子：当天的标记点会盖住考试点。
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final examDay = [
+      for (var offset = 0; offset < 7; offset++)
+        _monday.add(Duration(days: offset)),
+    ].firstWhere((day) => day != todayDate);
     SharedPreferences.setMockInitialValues(
       _seededPreferences(
         exams: [

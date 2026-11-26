@@ -18,23 +18,28 @@ typedef ScheduleWeekSlot = ({
   List<List<LessonOccurrence>> days,
 });
 
-/// 课表顶部右侧的周次按钮：点开抽屉式的周次选择。
+/// 课表顶部右侧的日历按钮：日视图打开日期抽屉，其余视图打开周次抽屉。
 class ScheduleWeekButton extends StatelessWidget {
-  const ScheduleWeekButton({required this.onTap, super.key});
+  const ScheduleWeekButton({
+    required this.onTap,
+    this.tooltip = '切换周次',
+    super.key,
+  });
 
   final VoidCallback onTap;
+  final String tooltip;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Tooltip(
-      message: '切换周次',
+      message: tooltip,
       child: Pressable(
         key: const ValueKey('schedule-week-button'),
         onTap: onTap,
         color: colors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        semanticLabel: '切换周次',
+        semanticLabel: tooltip,
         splashColor: colors.ink.withValues(alpha: 0.08),
         child: SizedBox(
           width: 34,
@@ -389,7 +394,7 @@ class ScheduleTodayButton extends StatelessWidget {
   final bool visible;
   final VoidCallback onTap;
 
-  /// 文案随视图变化：日视图「回到今天」、月视图「回到本月」。
+  /// 文案随视图变化：日视图「回到今天」、周视图「回到本周」。
   final String label;
 
   @override
