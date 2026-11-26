@@ -8,6 +8,7 @@ import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/app_field_label.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
+import 'package:qinghe_app/app/widgets/app_tag.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/services/notifications/course_notifications.dart';
 
@@ -67,6 +68,8 @@ class ReminderSettingsPage extends StatelessWidget {
                     _apply(context, () => settings.setExamLeadMinutes(minutes)),
               ),
               const SizedBox(height: AppSpace.md),
+              const _LiveStatusCard(),
+              const SizedBox(height: AppSpace.md),
               AppListGroup(
                 children: [
                   AppListRow(
@@ -88,7 +91,8 @@ class ReminderSettingsPage extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
-                  '修改后会自动重排通知；提醒时间最长为 2 天。',
+                  '修改后会自动重排通知；提醒时间最长为 2 天。'
+                  '上课中的实时通知由系统在状态栏展示，展开通知可查看课程与进度。',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: context.colors.inkMuted,
                   ),
@@ -317,6 +321,130 @@ class _UnitChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 实时通知的状态：说明它在通知栏怎么展示，并给出小米焦点通知的授权情况。
+class _LiveStatusCard extends StatefulWidget {
+  const _LiveStatusCard();
+
+  @override
+  State<_LiveStatusCard> createState() => _LiveStatusCardState();
+}
+
+class _LiveStatusCardState extends State<_LiveStatusCard> {
+  Future<LiveNotificationStatus>? _status;
+
+  @override
+  void initState() {
+    super.initState();
+    _status = Get.isRegistered<CourseNotifications>()
+        ? Get.find<CourseNotifications>().status()
+        : null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = Theme.of(context).textTheme;
+
+    return AppPanel(
+      key: const ValueKey('reminder-live-status'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(AppIcons.notifications, size: 20, color: colors.inkMuted),
+              const SizedBox(width: AppSpace.md),
+              Expanded(child: Text('上课中的实时通知', style: text.titleMedium)),
+            ],
+          ),
+          const SizedBox(height: AppSpace.sm),
+          Text(
+            '上课期间在通知栏置顶显示当前课程与进度，展开通知可以查看详情；'
+            'Android 16 还会在状态栏与锁屏显示胶囊。',
+            style: text.bodySmall?.copyWith(color: colors.inkMuted),
+          ),
+          if (_status case final future?) ...[
+            const SizedBox(height: AppSpace.md),
+            FutureBuilder<LiveNotificationStatus>(
+              future: future,
+              builder: (context, snapshot) {
+                final status = snapshot.data;
+                if (status == null || !status.supported) {
+                  return _StatusLine(
+                    label: '当前设备',
+                    value: '不支持实时通知',
+                    tone: AppTagTone.faint,
+                  );
+                }
+                return Column(
+                  children: [
+                    _StatusLine(
+                      label: '系统实时通知',
+                      value: status.canPromote ? '可用' : '普通通知',
+                      tone: status.canPromote
+                          ? AppTagTone.accent
+                          : AppTagTone.neutral,
+                    ),
+                    if (status.isXiaomi) ...[
+                      const SizedBox(height: AppSpace.sm),
+                      _StatusLine(
+                        label: '小米焦点通知（超级岛）',
+                        value: status.focusPermission ? '已授权' : '未授权',
+                        tone: status.focusPermission
+                            ? AppTagTone.accent
+                            : AppTagTone.faint,
+                      ),
+                      if (!status.focusPermission) ...[
+                        const SizedBox(height: AppSpace.xs),
+                        Text(
+                          '超级岛只在应用获得小米焦点通知权限后显示，'
+                          '需要向小米提交申请；未授权时其它通知不受影响。',
+                          style: text.labelSmall?.copyWith(
+                            color: colors.inkFaint,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ],
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({
+    required this.label,
+    required this.value,
+    required this.tone,
+  });
+
+  final String label;
+  final String value;
+  final AppTagTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: text.bodySmall?.copyWith(color: colors.inkMuted),
+          ),
+        ),
+        AppTag(label: value, tone: tone),
+      ],
     );
   }
 }

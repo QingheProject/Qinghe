@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:qinghe_app/app/reminder_controller.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
+import 'package:qinghe_app/features/shell/controllers/shell_controller.dart';
 import 'package:qinghe_app/services/notifications/reminder_plan.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -64,9 +65,47 @@ class CourseNotifications extends GetxService {
         ),
       ),
     );
+    _liveChannel.setMethodCallHandler(_handleNativeCall);
     await _requestPermissions();
     await sync();
     _startLiveLoop();
+  }
+
+  /// 原生侧的调用：目前只有点击通知后跳回课表。
+  Future<Object?> _handleNativeCall(MethodCall call) async {
+    if (call.method == 'opened') {
+      _openSchedule();
+    }
+    return null;
+  }
+
+  void _openSchedule() {
+    if (!Get.isRegistered<ShellController>()) return;
+    Get.until((route) => route.isFirst);
+    Get.find<ShellController>().selectSection(1, animate: false);
+  }
+
+  /// 实时通知在当前设备上的能力：厂商、是否已获得小米焦点通知权限等。
+  Future<LiveNotificationStatus> status() async {
+    if (!supported || !Platform.isAndroid) {
+      return const LiveNotificationStatus.unsupported();
+    }
+    try {
+      final result = await _liveChannel.invokeMapMethod<String, Object?>(
+        'status',
+      );
+      return LiveNotificationStatus(
+        manufacturer: '${result?['manufacturer'] ?? ''}',
+        brand: '${result?['brand'] ?? ''}',
+        sdk: (result?['sdk'] as int?) ?? 0,
+        focusPermission: result?['focusPermission'] == true,
+        canPromote: result?['canPromote'] == true,
+      );
+    } on PlatformException {
+      return const LiveNotificationStatus.unsupported();
+    } on MissingPluginException {
+      return const LiveNotificationStatus.unsupported();
+    }
   }
 
   Future<void> _requestPermissions() async {
@@ -190,10 +229,13 @@ class CourseNotifications extends GetxService {
     try {
       await _liveChannel.invokeMethod<void>('show', {
         'title': lesson.courseName,
-        'text': remaining > 0
-            ? '第 ${lesson.startPeriod}–${lesson.endPeriod} 节 · 还剩 $remaining 分钟'
-            : '第 ${lesson.startPeriod}–${lesson.endPeriod} 节 · 即将下课',
+        'text': remaining > 0 ? '还剩 $remaining 分钟' : '即将下课',
         'shortText': remaining > 0 ? '剩 $remaining 分钟' : '即将下课',
+        'detail': [
+          '第 ${lesson.startPeriod}–${lesson.endPeriod} 节',
+          if (lesson.location.isNotEmpty) lesson.location,
+          if (lesson.teacher.isNotEmpty) lesson.teacher,
+        ].join(' · '),
         'progress': elapsed,
         'max': lesson.durationMinutes,
       });
@@ -213,8 +255,9 @@ class CourseNotifications extends GetxService {
     try {
       await _liveChannel.invokeMethod<void>('show', {
         'title': '示例课程 · 预览',
-        'text': '第 3–4 节 · 还剩 30 分钟',
+        'text': '还剩 30 分钟',
         'shortText': '剩 30 分钟',
+        'detail': '第 3–4 节 · 示例教室 A101',
         'progress': 15,
         'max': 45,
       });
@@ -251,5 +294,41 @@ class CourseNotifications extends GetxService {
     } on ArgumentError {
       return tz.getLocation('UTC');
     }
+  }
+}
+
+/// 实时通知能力：[focusPermission] 为小米焦点通知（超级岛）授权结果，
+/// 未授权的应用只会收到普通通知。
+class LiveNotificationStatus {
+  const LiveNotificationStatus({
+    required this.manufacturer,
+    required this.brand,
+    required this.sdk,
+    required this.focusPermission,
+    required this.canPromote,
+  });
+
+  const LiveNotificationStatus.unsupported()
+    : manufacturer = '',
+      brand = '',
+      sdk = 0,
+      focusPermission = false,
+      canPromote = false;
+
+  final String manufacturer;
+  final String brand;
+  final int sdk;
+  final bool focusPermission;
+  final bool canPromote;
+
+  bool get supported => sdk > 0;
+
+  /// 小米 / 红米 / POCO 等 HyperOS 设备。
+  bool get isXiaomi {
+    final name = '$manufacturer $brand'.toLowerCase();
+    return name.contains('xiaomi') ||
+        name.contains('redmi') ||
+        name.contains('poco') ||
+        name.contains('hyperos');
   }
 }
