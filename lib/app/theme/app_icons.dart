@@ -39,6 +39,7 @@ abstract final class AppIcons {
   static const settings = PhosphorIconsBold.slidersHorizontal;
   static const close = PhosphorIconsBold.x;
   static const edit = PhosphorIconsBold.pencilSimple;
+  static const delete = PhosphorIconsBold.trash;
   static const error = PhosphorIconsBold.warningCircle;
   static const info = PhosphorIconsBold.info;
   static const calendarCheck = PhosphorIconsBold.calendarCheck;

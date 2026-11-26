@@ -81,7 +81,7 @@ void main() {
                   showLocation: true,
                   showTeacher: true,
                   textLayout: ScheduleTextLayout.center,
-                  onTap: (_) => taps++,
+                  onTap: () => taps++,
                 ),
               ),
             ),

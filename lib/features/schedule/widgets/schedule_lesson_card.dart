@@ -38,8 +38,7 @@ class ScheduleLessonCard extends StatelessWidget {
   final bool showTeacher;
   final ScheduleTextLayout textLayout;
 
-  /// 点击时传出卡片在屏幕上的位置，对话框据此从卡片放大展开。
-  final ValueChanged<Rect?> onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -56,90 +55,80 @@ class ScheduleLessonCard extends StatelessWidget {
     ].join('\n');
     final radius = BorderRadius.circular(cornerRadius);
 
-    return Builder(
-      builder: (cardContext) {
-        Rect? origin() {
-          final render = cardContext.findRenderObject();
-          if (render is! RenderBox || !render.hasSize) return null;
-          return render.localToGlobal(Offset.zero) & render.size;
-        }
-
-        return Semantics(
-          button: true,
-          onTap: () => onTap(origin()),
-          label: [
-            '${date.month}月${date.day}日',
-            lesson.courseName,
-            formatPeriods(lesson.startPeriod, lesson.endPeriod),
-            if (lesson.location.isNotEmpty) lesson.location,
-            if (lesson.teacher.isNotEmpty) lesson.teacher,
-          ].join('，'),
-          child: ExcludeSemantics(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: tone.background.withValues(alpha: backgroundOpacity),
-                border: showBorder
-                    ? Border.all(
-                        color: tone.foreground.withValues(alpha: 0.36),
-                        width: borderWidth,
-                      )
-                    : null,
-                borderRadius: radius,
-              ),
-              child: Pressable(
-                onTap: () => onTap(origin()),
-                splashColor: tone.foreground.withValues(alpha: 0.12),
-                borderRadius: radius,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final metadataVisible =
-                        metadata.isNotEmpty && constraints.maxHeight >= 64;
-                    return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: compact ? 4 : 7,
-                        vertical: compact ? 6 : 7,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (showTopLine) ...[
-                            Container(
-                              width: compact ? 14 : 18,
-                              height: 2,
-                              decoration: BoxDecoration(
-                                color: tone.foreground,
-                                borderRadius: BorderRadius.circular(1),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                          ],
-                          Expanded(
-                            child: _buildTextContent(
-                              metadata: metadataVisible ? metadata : null,
-                              titleStyle: text.labelSmall?.copyWith(
-                                color: tone.foreground,
-                                fontSize: compact ? 10.5 : 12,
-                                height: 1.18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              metadataStyle: text.labelSmall?.copyWith(
-                                color: tone.foreground.withValues(alpha: 0.78),
-                                fontSize: compact ? 8.5 : 9.5,
-                                height: 1.12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+    return Semantics(
+      button: true,
+      onTap: onTap,
+      label: [
+        '${date.month}月${date.day}日',
+        lesson.courseName,
+        formatPeriods(lesson.startPeriod, lesson.endPeriod),
+        if (lesson.location.isNotEmpty) lesson.location,
+        if (lesson.teacher.isNotEmpty) lesson.teacher,
+      ].join('，'),
+      child: ExcludeSemantics(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: tone.background.withValues(alpha: backgroundOpacity),
+            border: showBorder
+                ? Border.all(
+                    color: tone.foreground.withValues(alpha: 0.36),
+                    width: borderWidth,
+                  )
+                : null,
+            borderRadius: radius,
+          ),
+          child: Pressable(
+            onTap: onTap,
+            splashColor: tone.foreground.withValues(alpha: 0.12),
+            borderRadius: radius,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final metadataVisible =
+                    metadata.isNotEmpty && constraints.maxHeight >= 64;
+                return Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compact ? 4 : 7,
+                    vertical: compact ? 6 : 7,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (showTopLine) ...[
+                        Container(
+                          width: compact ? 14 : 18,
+                          height: 2,
+                          decoration: BoxDecoration(
+                            color: tone.foreground,
+                            borderRadius: BorderRadius.circular(1),
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      Expanded(
+                        child: _buildTextContent(
+                          metadata: metadataVisible ? metadata : null,
+                          titleStyle: text.labelSmall?.copyWith(
+                            color: tone.foreground,
+                            fontSize: compact ? 10.5 : 12,
+                            height: 1.18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          metadataStyle: text.labelSmall?.copyWith(
+                            color: tone.foreground.withValues(alpha: 0.78),
+                            fontSize: compact ? 8.5 : 9.5,
+                            height: 1.12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                    );
-                  },
-                ),
-              ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 

@@ -82,7 +82,11 @@ abstract final class AppPages {
       page: () {
         final args = Get.arguments;
         if (args is AddLessonArgs) {
-          return AddLessonPage(weekday: args.weekday, period: args.period);
+          return AddLessonPage(
+            weekday: args.weekday,
+            period: args.period,
+            rule: args.rule,
+          );
         }
         return const AddLessonPage(weekday: 1, period: 1);
       },

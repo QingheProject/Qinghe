@@ -21,7 +21,7 @@ class FocusLessonCard extends StatelessWidget {
   final LessonOccurrence? lesson;
   final int minuteOfDay;
   final bool hasLessonsToday;
-  final void Function(LessonOccurrence lesson, Rect? origin) onOpen;
+  final ValueChanged<LessonOccurrence> onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class FocusLessonCard extends StatelessWidget {
               key: ValueKey(current.id),
               lesson: current,
               minuteOfDay: minuteOfDay,
-              onTap: (origin) => onOpen(current, origin),
+              onTap: () => onOpen(current),
             ),
     );
   }
@@ -61,7 +61,7 @@ class _LessonCard extends StatelessWidget {
 
   final LessonOccurrence lesson;
   final int minuteOfDay;
-  final ValueChanged<Rect?> onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -71,113 +71,103 @@ class _LessonCard extends StatelessWidget {
     final onAccent = colors.onAccent;
     final soft = onAccent.withValues(alpha: 0.78);
 
-    return Builder(
-      builder: (cardContext) {
-        Rect? origin() {
-          final render = cardContext.findRenderObject();
-          if (render is! RenderBox || !render.hasSize) return null;
-          return render.localToGlobal(Offset.zero) & render.size;
-        }
-
-        return Pressable(
-          onTap: () => onTap(origin()),
-          color: colors.accent,
-          splashColor: onAccent.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(AppRadius.xl),
-          semanticLabel: '${ongoing ? '正在上课' : '下一节'}：${lesson.courseName}',
-          child: SizedBox(
-            width: double.infinity,
-            child: Stack(
-              children: [
-                Positioned(
-                  right: -4,
-                  bottom: -36,
-                  child: ExcludeSemantics(
-                    child: Text(
-                      '${lesson.startPeriod}',
-                      style: TextStyle(
-                        fontSize: 156,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
-                        color: onAccent.withValues(alpha: 0.1),
-                      ),
-                    ),
+    return Pressable(
+      onTap: onTap,
+      color: colors.accent,
+      splashColor: onAccent.withValues(alpha: 0.2),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      semanticLabel: '${ongoing ? '正在上课' : '下一节'}：${lesson.courseName}',
+      child: SizedBox(
+        width: double.infinity,
+        child: Stack(
+          children: [
+            Positioned(
+              right: -4,
+              bottom: -36,
+              child: ExcludeSemantics(
+                child: Text(
+                  '${lesson.startPeriod}',
+                  style: TextStyle(
+                    fontSize: 156,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                    color: onAccent.withValues(alpha: 0.1),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpace.xl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSpace.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          _GlassTag(label: ongoing ? '进行中' : '下一节'),
-                          const Spacer(),
-                          Text(
-                            formatPeriods(lesson.startPeriod, lesson.endPeriod),
-                            style: text.labelMedium?.copyWith(color: soft),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
+                      _GlassTag(label: ongoing ? '进行中' : '下一节'),
+                      const Spacer(),
                       Text(
-                        lesson.courseName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: text.headlineSmall?.copyWith(color: onAccent),
+                        formatPeriods(lesson.startPeriod, lesson.endPeriod),
+                        style: text.labelMedium?.copyWith(color: soft),
                       ),
-                      const SizedBox(height: AppSpace.sm),
-                      Wrap(
-                        spacing: 14,
-                        runSpacing: 6,
-                        children: [
-                          _IconText(
-                            icon: AppIcons.clock,
-                            label:
-                                '${formatClock(lesson.startMinute)} – ${formatClock(lesson.endMinute)}',
-                            color: soft,
-                          ),
-                          if (lesson.location.isNotEmpty)
-                            _IconText(
-                              icon: AppIcons.location,
-                              label: lesson.location,
-                              color: soft,
-                            ),
-                        ],
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    lesson.courseName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: text.headlineSmall?.copyWith(color: onAccent),
+                  ),
+                  const SizedBox(height: AppSpace.sm),
+                  Wrap(
+                    spacing: 14,
+                    runSpacing: 6,
+                    children: [
+                      _IconText(
+                        icon: AppIcons.clock,
+                        label:
+                            '${formatClock(lesson.startMinute)} – ${formatClock(lesson.endMinute)}',
+                        color: soft,
                       ),
-                      const SizedBox(height: AppSpace.xl),
-                      if (ongoing)
-                        _Progress(
-                          value: lesson.progressAt(minuteOfDay),
-                          remaining: lesson.endMinute - minuteOfDay,
-                        )
-                      else
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              formatDuration(lesson.startMinute - minuteOfDay),
-                              style: text.headlineSmall?.copyWith(
-                                color: onAccent,
-                                fontSize: 26,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '后开始',
-                              style: text.labelMedium?.copyWith(color: soft),
-                            ),
-                          ],
+                      if (lesson.location.isNotEmpty)
+                        _IconText(
+                          icon: AppIcons.location,
+                          label: lesson.location,
+                          color: soft,
                         ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppSpace.xl),
+                  if (ongoing)
+                    _Progress(
+                      value: lesson.progressAt(minuteOfDay),
+                      remaining: lesson.endMinute - minuteOfDay,
+                    )
+                  else
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          formatDuration(lesson.startMinute - minuteOfDay),
+                          style: text.headlineSmall?.copyWith(
+                            color: onAccent,
+                            fontSize: 26,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '后开始',
+                          style: text.labelMedium?.copyWith(color: soft),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }

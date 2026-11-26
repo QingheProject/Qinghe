@@ -57,7 +57,7 @@ Widget _lessonCard() => SizedBox(
     showLocation: true,
     showTeacher: true,
     textLayout: ScheduleTextLayout.top,
-    onTap: (_) {},
+    onTap: () {},
   ),
 );
 
@@ -78,7 +78,7 @@ Widget _examCard() => SizedBox(
     showTopLine: true,
     showLocation: true,
     textLayout: ScheduleTextLayout.top,
-    onTap: (_) {},
+    onTap: () {},
   ),
 );
 
@@ -152,7 +152,7 @@ void main() {
             showTopLine: false,
             showLocation: true,
             textLayout: ScheduleTextLayout.top,
-            onTap: (_) {},
+            onTap: () {},
           ),
         ),
       ),

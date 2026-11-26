@@ -1,14 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:qinghe_app/app/theme/app_colors.dart';
-import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/utils/formatters.dart';
-import 'package:qinghe_app/app/widgets/app_sections.dart';
-import 'package:qinghe_app/app/widgets/icon_action.dart';
 import 'package:qinghe_app/app/widgets/reveal.dart';
 import 'package:qinghe_app/features/home/controllers/home_controller.dart';
 import 'package:qinghe_app/features/home/widgets/focus_lesson_card.dart';
@@ -60,8 +56,6 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  void _comingSoon(String feature) => showAppToast(context, '$feature即将推出');
-
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
@@ -96,11 +90,6 @@ class _HomePageState extends State<HomePage>
                   ],
                 ),
               ),
-              IconAction(
-                icon: AppIcons.calendar,
-                label: '打开日历',
-                onTap: () => _comingSoon('日历'),
-              ),
             ],
           ),
           if (lessons.isNotEmpty)
@@ -108,14 +97,7 @@ class _HomePageState extends State<HomePage>
               lesson: _controller.focusLesson,
               minuteOfDay: minute,
               hasLessonsToday: true,
-              onOpen: (lesson, origin) => showLessonDialog(
-                context,
-                lesson,
-                date: now,
-                origin: origin,
-                originColor: context.colors.accent,
-                originRadius: AppRadius.xl,
-              ),
+              onOpen: (lesson) => showLessonDialog(context, lesson, date: now),
             ),
         ];
 

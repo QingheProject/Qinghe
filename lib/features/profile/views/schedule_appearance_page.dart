@@ -608,7 +608,7 @@ class _PreviewLesson extends StatelessWidget {
         showLocation: showLocation,
         showTeacher: showTeacher,
         textLayout: textLayout,
-        onTap: (_) {},
+        onTap: () {},
       ),
     );
   }

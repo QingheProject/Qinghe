@@ -184,42 +184,102 @@ class LocalTimetableRepository implements TimetableSource {
     ], updated.id);
   }
 
-  /// 修改单次上课安排：课程名同步到这门课的全部安排，
-  /// 地点与教师只作用于当前这一条。
-  Future<void> updateLesson({
-    required String courseId,
+  /// 按编号取一条上课安排。
+  TimetableRule? findRule(String ruleId) {
+    for (final rule in active?.rules ?? const <TimetableRule>[]) {
+      if (rule.id == ruleId) return rule;
+    }
+    return null;
+  }
+
+  TimetableRule? _ruleIn(Timetable table, String ruleId) {
+    for (final rule in table.rules) {
+      if (rule.id == ruleId) return rule;
+    }
+    return null;
+  }
+
+  /// 编辑一条安排：课程名称同步到这门课的全部安排，
+  /// 星期、节次、周次、地点与教师只改当前这一条。
+  Future<void> updateRule({
     required String ruleId,
     required String name,
+    required int weekday,
+    required int startPeriod,
+    required int endPeriod,
+    required List<int> weeks,
     required String location,
     required String teacher,
   }) async {
     final table = active;
     if (table == null) throw const FormatException('当前没有可编辑的课表。');
+    final existing = _ruleIn(table, ruleId);
+    if (existing == null) throw const FormatException('这门课已不在课表中。');
+
     final courseName = name.trim();
     if (courseName.isEmpty) throw const FormatException('课程名称不能为空。');
-    if (courseName.length > 40) throw const FormatException('课程名称不能超过 40 个字符。');
+    if (courseName.length > 40) {
+      throw const FormatException('课程名称不能超过 40 个字符。');
+    }
+    if (weekday < 1 || weekday > 7) {
+      throw const FormatException('星期应在 1–7 之间。');
+    }
+    if (startPeriod < 1 ||
+        endPeriod < startPeriod ||
+        endPeriod > table.config.periodStartTimes.length) {
+      throw const FormatException('节次超出当前学期的节次设置。');
+    }
+    final lessonWeeks = weeks.toSet().toList()..sort();
+    if (lessonWeeks.isEmpty) throw const FormatException('请至少选择一周。');
+    if (lessonWeeks.first < 1 || lessonWeeks.last > table.config.weekCount) {
+      throw const FormatException('周次超出当前学期的教学周。');
+    }
 
     final updated = Timetable(
       id: table.id,
       config: table.config,
       rules: [
         for (final rule in table.rules)
-          if (rule.courseId != courseId)
+          if (rule.courseId != existing.courseId)
             rule
           else
             TimetableRule(
               id: rule.id,
               courseId: rule.courseId,
               name: courseName,
-              weekday: rule.weekday,
-              weeks: rule.weeks,
-              startPeriod: rule.startPeriod,
-              endPeriod: rule.endPeriod,
+              weekday: rule.id == ruleId ? weekday : rule.weekday,
+              weeks: rule.id == ruleId ? lessonWeeks : rule.weeks,
+              startPeriod: rule.id == ruleId ? startPeriod : rule.startPeriod,
+              endPeriod: rule.id == ruleId ? endPeriod : rule.endPeriod,
               location: rule.id == ruleId ? location.trim() : rule.location,
               teacher: rule.id == ruleId ? teacher.trim() : rule.teacher,
               type: rule.type,
               sourceNote: rule.sourceNote,
             ),
+      ],
+      exams: table.exams,
+    );
+    await _write([
+      for (final previous in timetables)
+        if (previous.id != updated.id) previous,
+      updated,
+    ], updated.id);
+  }
+
+  /// 删除整门课程：这门课在课表里的全部安排一起移除。
+  Future<void> removeCourse({required String courseId}) async {
+    final table = active;
+    if (table == null) throw const FormatException('当前没有可编辑的课表。');
+    if (!table.rules.any((rule) => rule.courseId == courseId)) {
+      throw const FormatException('这门课已不在课表中。');
+    }
+
+    final updated = Timetable(
+      id: table.id,
+      config: table.config,
+      rules: [
+        for (final rule in table.rules)
+          if (rule.courseId != courseId) rule,
       ],
       exams: table.exams,
     );
