@@ -63,7 +63,7 @@ class ProfilePage extends StatelessWidget {
                       icon: AppIcons.notifications,
                       title: '课程提醒',
                       subtitle: reminder.classEnabled
-                          ? '课前 \${reminder.classLeadMinutes.value} 分钟提醒'
+                          ? '课前 ${reminder.classLeadMinutes.value} 分钟提醒'
                           : '已关闭',
                       onTap: () => Get.toNamed<void>(AppRoutes.reminders),
                     ),
