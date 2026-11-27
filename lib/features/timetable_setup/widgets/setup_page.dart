@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+import 'package:qinghe_app/app/widgets/app_page.dart';
 import 'package:qinghe_app/app/widgets/step_indicator.dart';
 
 class SetupPage extends StatelessWidget {
@@ -27,76 +27,32 @@ class SetupPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final colors = context.colors;
     final text = Theme.of(context).textTheme;
-    return Scaffold(
-      backgroundColor: colors.canvas,
-      appBar: AppBar(title: Text(title), centerTitle: true, actions: actions),
-      body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: SingleChildScrollView(
-              key: const ValueKey('setup-scroll'),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (step case final current?) ...[
-                    Row(
-                      children: [
-                        StepIndicator(count: stepCount, current: current),
-                        const SizedBox(width: AppSpace.sm),
-                        Expanded(
-                          child: Text(
-                            '首次设置 · ${current + 1} / $stepCount',
-                            style: text.labelMedium,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.sm),
-                  ],
-                  Text(description, style: text.bodySmall),
-                  const SizedBox(height: AppSpace.lg),
-                  ...children,
-                  if (keyboardOpen) ...[
-                    const SizedBox(height: AppSpace.lg),
-                    footer,
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      bottomNavigationBar: keyboardOpen
-          ? null
-          : DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.surface,
-                border: Border(top: BorderSide(color: colors.line)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Center(
-                  heightFactor: 1,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 640),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpace.xl,
-                        vertical: AppSpace.md,
-                      ),
-                      child: footer,
-                    ),
-                  ),
+    return AppFormPage(
+      title: title,
+      actions: actions,
+      footer: footer,
+      scrollKey: const ValueKey('setup-scroll'),
+      children: [
+        if (step case final current?) ...[
+          Row(
+            children: [
+              StepIndicator(count: stepCount, current: current),
+              const SizedBox(width: AppSpace.sm),
+              Expanded(
+                child: Text(
+                  '首次设置 · ${current + 1} / $stepCount',
+                  style: text.labelMedium,
                 ),
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: AppSpace.sm),
+        ],
+        Text(description, style: text.bodySmall),
+        const SizedBox(height: AppSpace.lg),
+        ...children,
+      ],
     );
   }
 }

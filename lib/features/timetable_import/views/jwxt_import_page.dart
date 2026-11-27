@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
+import 'package:qinghe_app/app/widgets/app_page.dart';
 import 'package:qinghe_app/app/widgets/app_field_label.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_semester_options.dart';
@@ -75,10 +76,8 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Scaffold(
-      backgroundColor: colors.canvas,
       appBar: AppBar(
         title: const Text('教务系统导入'),
-        centerTitle: true,
         actions: [
           Obx(
             () => IconButton(
@@ -97,10 +96,12 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _StatusBar(
-                school: widget.source.school,
-                text: _JwxtStageText.status(stage),
-                error: _controller.error.value,
+              AppPageContent(
+                child: _StatusBar(
+                  school: widget.source.school,
+                  text: _JwxtStageText.status(stage),
+                  error: _controller.error.value,
+                ),
               ),
               Expanded(
                 child: switch ((fetched, _browser)) {
@@ -120,34 +121,39 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
                 },
               ),
               if (options != null && fetched == null)
-                _SemesterPanel(
-                  options: options,
-                  year: _controller.year.value,
-                  term: _controller.term.value,
-                  enabled: !_controller.isBusy,
-                  onChanged: (year, term) {
-                    if (year != null) _controller.year.value = year;
-                    if (term != null) _controller.term.value = term;
-                  },
+                AppPageContent(
+                  child: _SemesterPanel(
+                    options: options,
+                    year: _controller.year.value,
+                    term: _controller.term.value,
+                    enabled: !_controller.isBusy,
+                    onChanged: (year, term) {
+                      if (year != null) _controller.year.value = year;
+                      if (term != null) _controller.term.value = term;
+                    },
+                  ),
                 ),
-              _ActionBar(
-                label: _JwxtStageText.button(stage, options != null),
-                enabled: _canRunPrimary(stage),
-                busy: _controller.isBusy,
-                secondaryLabel: fetched == null ? null : '重新读取',
-                onSecondary: fetched == null ? null : _controller.readSemesters,
-                onPressed: _runPrimaryAction,
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpace.lg,
-                  0,
-                  AppSpace.lg,
-                  AppSpace.sm,
-                ),
-                child: Text(
-                  '登录在学校官方页面完成，青禾不读取也不保存学校账号与密码。',
-                  style: Theme.of(context).textTheme.labelSmall,
+              AppPageFooter(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _ActionBar(
+                      label: _JwxtStageText.button(stage, options != null),
+                      enabled: _canRunPrimary(stage),
+                      busy: _controller.isBusy,
+                      secondaryLabel: fetched == null ? null : '重新读取',
+                      onSecondary: fetched == null
+                          ? null
+                          : _controller.readSemesters,
+                      onPressed: _runPrimaryAction,
+                    ),
+                    const SizedBox(height: AppSpace.sm),
+                    Text(
+                      '登录在学校官方页面完成，青禾不读取也不保存学校账号与密码。',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -210,7 +216,7 @@ class _StatusBar extends StatelessWidget {
         theme.inputDecorationTheme.errorStyle?.color ?? theme.colorScheme.error;
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpace.lg,
+        horizontal: AppSpace.xl,
         vertical: AppSpace.sm,
       ),
       decoration: BoxDecoration(
@@ -263,9 +269,9 @@ class _SemesterPanel extends StatelessWidget {
         ),
       ),
       padding: const EdgeInsets.fromLTRB(
-        AppSpace.lg,
+        AppSpace.xl,
         AppSpace.md,
-        AppSpace.lg,
+        AppSpace.xl,
         AppSpace.md,
       ),
       child: Row(
@@ -479,32 +485,26 @@ class _ActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpace.lg,
-        AppSpace.md,
-        AppSpace.lg,
-        AppSpace.sm,
-      ),
-      child: Row(
-        children: [
-          if (secondaryLabel case final secondary?) ...[
-            AppButton(
+    return Row(
+      children: [
+        if (secondaryLabel case final secondary?) ...[
+          Flexible(
+            child: AppButton(
               label: secondary,
               tone: AppButtonTone.secondary,
               onPressed: busy ? null : onSecondary,
             ),
-            const SizedBox(width: AppSpace.sm),
-          ],
-          Expanded(
-            child: AppButton(
-              label: label,
-              expand: true,
-              onPressed: enabled ? onPressed : null,
-            ),
           ),
+          const SizedBox(width: AppSpace.sm),
         ],
-      ),
+        Expanded(
+          child: AppButton(
+            label: label,
+            expand: true,
+            onPressed: enabled ? onPressed : null,
+          ),
+        ),
+      ],
     );
   }
 }

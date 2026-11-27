@@ -111,8 +111,13 @@ void main() {
     // 操作在标题右侧、关闭按钮左边。
     expect(actionRect.left, greaterThan(titleRect.right));
     expect(actionRect.right, lessThanOrEqualTo(closeRect.left));
-    // 操作与关闭按钮都用 34 的固定高度，不会把标题行撑高。
-    expect(tester.getSize(find.byType(AppSheetAction)).height, 34);
-    expect(tester.getSize(find.byTooltip('关闭')).height, 34);
+    expect(
+      tester.getSize(find.byType(AppSheetAction)).height,
+      greaterThanOrEqualTo(44),
+    );
+    expect(
+      tester.getSize(find.byTooltip('关闭')).height,
+      greaterThanOrEqualTo(44),
+    );
   });
 }

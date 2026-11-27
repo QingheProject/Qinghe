@@ -7,7 +7,9 @@ import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+import 'package:qinghe_app/app/widgets/app_page.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
+import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/app_sheet.dart';
 import 'package:qinghe_app/app/widgets/app_period_edit_row.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
@@ -23,263 +25,254 @@ class ScheduleAppearancePage extends GetView<AppearanceController> {
   Widget build(BuildContext context) {
     final timetables = Get.find<LocalTimetableRepository>();
     return Scaffold(
-      backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('课表外观'), centerTitle: true),
+      appBar: AppBar(title: const Text('课表外观')),
       body: SafeArea(
         top: false,
         child: Obx(
-          () => ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-            children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 640),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SchedulePreview(
-                        colorScheme: controller.courseColorScheme.value,
-                        saturation: controller.scheduleCourseSaturation.value,
-                        rowHeight: controller.scheduleRowHeight.value,
-                        cardWidthFactor: controller.scheduleCardWidth.value,
-                        cardInset: controller.scheduleCardInset.value,
-                        verticalInset: controller.scheduleVerticalInset.value,
-                        cardOpacity: controller.scheduleCardOpacity.value,
-                        cardRadius: controller.scheduleCardRadius.value,
-                        showBorder: controller.scheduleShowBorder.value,
-                        borderWidth: controller.scheduleBorderWidth.value,
-                        showTopLine: controller.scheduleShowTopLine.value,
-                        showLocation: controller.scheduleShowLocation.value,
-                        showTeacher: controller.scheduleShowTeacher.value,
-                        textLayout: controller.scheduleTextLayout.value,
-                        showTime: controller.scheduleShowTime.value,
-                        timeAlignment: controller.scheduleTimeAlignment.value,
-                        startTimes: controller.scheduleStartTimes.toList(),
-                        periodDuration: controller.schedulePeriodDuration.value
-                            .round(),
-                        railTextLayout: controller.scheduleRailTextLayout.value,
-                        showCurrentTimeLine:
-                            controller.scheduleShowCurrentTimeLine.value,
-                        showWeekend: controller.scheduleShowWeekend.value,
-                        showGridLines: controller.scheduleShowGridLines.value,
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      _CoursePaletteSetting(
-                        selected: controller.courseColorScheme.value,
-                        saturation: controller.scheduleCourseSaturation.value,
-                        onChanged: controller.setCourseColorScheme,
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      _TextLayoutSelector(
-                        selected: controller.scheduleTextLayout.value,
-                        onChanged: controller.setScheduleTextLayout,
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      _TimeSettings(
-                        showTime: controller.scheduleShowTime.value,
-                        alignment: controller.scheduleTimeAlignment.value,
-                        startTimes: controller.scheduleStartTimes.toList(),
-                        periodDuration:
-                            timetables.active?.config.periodDurationMinutes
-                                .toDouble() ??
-                            controller.schedulePeriodDuration.value,
-                        hasSemester: timetables.active != null,
-                        textLayout: controller.scheduleRailTextLayout.value,
-                        onShowTimeChanged: controller.setScheduleShowTime,
-                        onAlignmentChanged: controller.setScheduleTimeAlignment,
-                        onTextLayoutChanged:
-                            controller.setScheduleRailTextLayout,
-                        onTimeSettingsChanged: (startTimes, duration) async {
-                          await controller.setScheduleStartTimes(startTimes);
-                          await controller.setSchedulePeriodDuration(duration);
-                        },
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      _SettingsGroup(
-                        title: '尺寸',
-                        children: [
-                          _SliderSetting(
-                            key: const ValueKey('schedule-height-slider'),
-                            title: '课程高度',
-                            description: '更高的课程块可以容纳更多文字',
-                            value: controller.scheduleRowHeight.value,
-                            valueLabel:
-                                '${controller.scheduleRowHeight.value.round()}',
-                            minimum: 42,
-                            maximum: 68,
-                            divisions: 13,
-                            onChanged: controller.previewScheduleRowHeight,
-                            onChangeEnd: controller.setScheduleRowHeight,
+          () => AppPageContent(
+            child: ListView(
+              padding: AppPageContent.padding,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SchedulePreview(
+                      colorScheme: controller.courseColorScheme.value,
+                      saturation: controller.scheduleCourseSaturation.value,
+                      rowHeight: controller.scheduleRowHeight.value,
+                      cardWidthFactor: controller.scheduleCardWidth.value,
+                      cardInset: controller.scheduleCardInset.value,
+                      verticalInset: controller.scheduleVerticalInset.value,
+                      cardOpacity: controller.scheduleCardOpacity.value,
+                      cardRadius: controller.scheduleCardRadius.value,
+                      showBorder: controller.scheduleShowBorder.value,
+                      borderWidth: controller.scheduleBorderWidth.value,
+                      showTopLine: controller.scheduleShowTopLine.value,
+                      showLocation: controller.scheduleShowLocation.value,
+                      showTeacher: controller.scheduleShowTeacher.value,
+                      textLayout: controller.scheduleTextLayout.value,
+                      showTime: controller.scheduleShowTime.value,
+                      timeAlignment: controller.scheduleTimeAlignment.value,
+                      startTimes: controller.scheduleStartTimes.toList(),
+                      periodDuration: controller.schedulePeriodDuration.value
+                          .round(),
+                      railTextLayout: controller.scheduleRailTextLayout.value,
+                      showCurrentTimeLine:
+                          controller.scheduleShowCurrentTimeLine.value,
+                      showWeekend: controller.scheduleShowWeekend.value,
+                      showGridLines: controller.scheduleShowGridLines.value,
+                    ),
+                    const SizedBox(height: AppSpace.xxl),
+                    _CoursePaletteSetting(
+                      selected: controller.courseColorScheme.value,
+                      saturation: controller.scheduleCourseSaturation.value,
+                      onChanged: controller.setCourseColorScheme,
+                    ),
+                    const SizedBox(height: AppSpace.xxl),
+                    _TextLayoutSelector(
+                      selected: controller.scheduleTextLayout.value,
+                      onChanged: controller.setScheduleTextLayout,
+                    ),
+                    const SizedBox(height: AppSpace.xxl),
+                    _TimeSettings(
+                      showTime: controller.scheduleShowTime.value,
+                      alignment: controller.scheduleTimeAlignment.value,
+                      startTimes: controller.scheduleStartTimes.toList(),
+                      periodDuration:
+                          timetables.active?.config.periodDurationMinutes
+                              .toDouble() ??
+                          controller.schedulePeriodDuration.value,
+                      hasSemester: timetables.active != null,
+                      textLayout: controller.scheduleRailTextLayout.value,
+                      onShowTimeChanged: controller.setScheduleShowTime,
+                      onAlignmentChanged: controller.setScheduleTimeAlignment,
+                      onTextLayoutChanged: controller.setScheduleRailTextLayout,
+                      onTimeSettingsChanged: (startTimes, duration) async {
+                        await controller.setScheduleStartTimes(startTimes);
+                        await controller.setSchedulePeriodDuration(duration);
+                      },
+                    ),
+                    const SizedBox(height: AppSpace.xxl),
+                    _SettingsGroup(
+                      title: '尺寸',
+                      children: [
+                        _SliderSetting(
+                          key: const ValueKey('schedule-height-slider'),
+                          title: '课程高度',
+                          description: '更高的课程块可以容纳更多文字',
+                          value: controller.scheduleRowHeight.value,
+                          valueLabel:
+                              '${controller.scheduleRowHeight.value.round()}',
+                          minimum: 42,
+                          maximum: 68,
+                          divisions: 13,
+                          onChanged: controller.previewScheduleRowHeight,
+                          onChangeEnd: controller.setScheduleRowHeight,
+                        ),
+                        _SliderSetting(
+                          key: const ValueKey('schedule-width-slider'),
+                          title: '课程宽度',
+                          description: '调整课程块在每天列中的占比',
+                          value: controller.scheduleCardWidth.value,
+                          valueLabel:
+                              '${(controller.scheduleCardWidth.value * 100).round()}%',
+                          minimum: 0.72,
+                          maximum: 1,
+                          divisions: 7,
+                          onChanged: controller.previewScheduleCardWidth,
+                          onChangeEnd: controller.setScheduleCardWidth,
+                        ),
+                        _SliderSetting(
+                          key: const ValueKey('schedule-inset-slider'),
+                          title: '左右间隔',
+                          description: '调整课程块两侧的留白',
+                          value: controller.scheduleCardInset.value,
+                          valueLabel: controller.scheduleCardInset.value
+                              .toStringAsFixed(1),
+                          minimum: 0,
+                          maximum: 5,
+                          divisions: 10,
+                          onChanged: controller.previewScheduleCardInset,
+                          onChangeEnd: controller.setScheduleCardInset,
+                        ),
+                        _SliderSetting(
+                          key: const ValueKey('schedule-vertical-inset-slider'),
+                          title: '上下间隔',
+                          description: '调整课程块上下方的留白',
+                          value: controller.scheduleVerticalInset.value,
+                          valueLabel: controller.scheduleVerticalInset.value
+                              .toStringAsFixed(1),
+                          minimum: 0,
+                          maximum: 8,
+                          divisions: 16,
+                          onChanged: controller.previewScheduleVerticalInset,
+                          onChangeEnd: controller.setScheduleVerticalInset,
+                        ),
+                        _SwitchSetting(
+                          key: const ValueKey('schedule-weekend-switch'),
+                          title: '显示周末',
+                          description: '关闭后工作日会自动铺满课表宽度',
+                          value: controller.scheduleShowWeekend.value,
+                          onChanged: controller.setScheduleShowWeekend,
+                          showDivider: false,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpace.xxl),
+                    _SettingsGroup(
+                      title: '卡片样式',
+                      children: [
+                        _SliderSetting(
+                          key: const ValueKey('schedule-opacity-slider'),
+                          title: '底色透明度',
+                          description: '只调整课程底色，文字始终保持清晰',
+                          value: controller.scheduleCardOpacity.value,
+                          valueLabel:
+                              '${(controller.scheduleCardOpacity.value * 100).round()}%',
+                          minimum: 0.7,
+                          maximum: 1,
+                          divisions: 6,
+                          onChanged: controller.previewScheduleCardOpacity,
+                          onChangeEnd: controller.setScheduleCardOpacity,
+                        ),
+                        _SliderSetting(
+                          key: const ValueKey('schedule-saturation-slider'),
+                          title: '课程饱和度',
+                          description: '调整课程颜色的鲜艳程度',
+                          value: controller.scheduleCourseSaturation.value,
+                          valueLabel:
+                              '${(controller.scheduleCourseSaturation.value * 100).round()}%',
+                          minimum: 0,
+                          maximum: 1,
+                          divisions: 20,
+                          onChanged: controller.previewScheduleCourseSaturation,
+                          onChangeEnd: controller.setScheduleCourseSaturation,
+                        ),
+                        _SliderSetting(
+                          key: const ValueKey('schedule-radius-slider'),
+                          title: '课程圆角',
+                          description: '调整课程块四角的圆润程度',
+                          value: controller.scheduleCardRadius.value,
+                          valueLabel:
+                              '${controller.scheduleCardRadius.value.round()}',
+                          minimum: 0,
+                          maximum: 20,
+                          divisions: 10,
+                          onChanged: controller.previewScheduleCardRadius,
+                          onChangeEnd: controller.setScheduleCardRadius,
+                        ),
+                        _SwitchSetting(
+                          key: const ValueKey('schedule-border-switch'),
+                          title: '课程边框',
+                          description: '为课程块增加细描边',
+                          value: controller.scheduleShowBorder.value,
+                          onChanged: controller.setScheduleShowBorder,
+                        ),
+                        _SliderSetting(
+                          key: const ValueKey('schedule-border-width-slider'),
+                          title: '描边粗细',
+                          description: '调整课程边框线条粗细',
+                          value: controller.scheduleBorderWidth.value,
+                          valueLabel: controller.scheduleBorderWidth.value
+                              .toStringAsFixed(1),
+                          minimum: 0.5,
+                          maximum: 2.5,
+                          divisions: 4,
+                          onChanged: controller.previewScheduleBorderWidth,
+                          onChangeEnd: controller.setScheduleBorderWidth,
+                          enabled: controller.scheduleShowBorder.value,
+                        ),
+                        _SwitchSetting(
+                          key: const ValueKey('schedule-top-line-switch'),
+                          title: '顶部横线',
+                          description: '显示课程色彩识别线',
+                          value: controller.scheduleShowTopLine.value,
+                          onChanged: controller.setScheduleShowTopLine,
+                        ),
+                        _SwitchSetting(
+                          key: const ValueKey('schedule-grid-lines-switch'),
+                          title: '背景横线',
+                          description: '显示节次之间的横向辅助线',
+                          value: controller.scheduleShowGridLines.value,
+                          onChanged: controller.setScheduleShowGridLines,
+                          showDivider: false,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpace.xxl),
+                    _SettingsGroup(
+                      title: '显示内容',
+                      children: [
+                        _SwitchSetting(
+                          key: const ValueKey(
+                            'schedule-current-time-line-switch',
                           ),
-                          _SliderSetting(
-                            key: const ValueKey('schedule-width-slider'),
-                            title: '课程宽度',
-                            description: '调整课程块在每天列中的占比',
-                            value: controller.scheduleCardWidth.value,
-                            valueLabel:
-                                '${(controller.scheduleCardWidth.value * 100).round()}%',
-                            minimum: 0.72,
-                            maximum: 1,
-                            divisions: 7,
-                            onChanged: controller.previewScheduleCardWidth,
-                            onChangeEnd: controller.setScheduleCardWidth,
-                          ),
-                          _SliderSetting(
-                            key: const ValueKey('schedule-inset-slider'),
-                            title: '左右间隔',
-                            description: '调整课程块两侧的留白',
-                            value: controller.scheduleCardInset.value,
-                            valueLabel: controller.scheduleCardInset.value
-                                .toStringAsFixed(1),
-                            minimum: 0,
-                            maximum: 5,
-                            divisions: 10,
-                            onChanged: controller.previewScheduleCardInset,
-                            onChangeEnd: controller.setScheduleCardInset,
-                          ),
-                          _SliderSetting(
-                            key: const ValueKey(
-                              'schedule-vertical-inset-slider',
-                            ),
-                            title: '上下间隔',
-                            description: '调整课程块上下方的留白',
-                            value: controller.scheduleVerticalInset.value,
-                            valueLabel: controller.scheduleVerticalInset.value
-                                .toStringAsFixed(1),
-                            minimum: 0,
-                            maximum: 8,
-                            divisions: 16,
-                            onChanged: controller.previewScheduleVerticalInset,
-                            onChangeEnd: controller.setScheduleVerticalInset,
-                          ),
-                          _SwitchSetting(
-                            key: const ValueKey('schedule-weekend-switch'),
-                            title: '显示周末',
-                            description: '关闭后工作日会自动铺满课表宽度',
-                            value: controller.scheduleShowWeekend.value,
-                            onChanged: controller.setScheduleShowWeekend,
-                            showDivider: false,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      _SettingsGroup(
-                        title: '卡片样式',
-                        children: [
-                          _SliderSetting(
-                            key: const ValueKey('schedule-opacity-slider'),
-                            title: '底色透明度',
-                            description: '只调整课程底色，文字始终保持清晰',
-                            value: controller.scheduleCardOpacity.value,
-                            valueLabel:
-                                '${(controller.scheduleCardOpacity.value * 100).round()}%',
-                            minimum: 0.7,
-                            maximum: 1,
-                            divisions: 6,
-                            onChanged: controller.previewScheduleCardOpacity,
-                            onChangeEnd: controller.setScheduleCardOpacity,
-                          ),
-                          _SliderSetting(
-                            key: const ValueKey('schedule-saturation-slider'),
-                            title: '课程饱和度',
-                            description: '调整课程颜色的鲜艳程度',
-                            value: controller.scheduleCourseSaturation.value,
-                            valueLabel:
-                                '${(controller.scheduleCourseSaturation.value * 100).round()}%',
-                            minimum: 0,
-                            maximum: 1,
-                            divisions: 20,
-                            onChanged:
-                                controller.previewScheduleCourseSaturation,
-                            onChangeEnd: controller.setScheduleCourseSaturation,
-                          ),
-                          _SliderSetting(
-                            key: const ValueKey('schedule-radius-slider'),
-                            title: '课程圆角',
-                            description: '调整课程块四角的圆润程度',
-                            value: controller.scheduleCardRadius.value,
-                            valueLabel:
-                                '${controller.scheduleCardRadius.value.round()}',
-                            minimum: 0,
-                            maximum: 20,
-                            divisions: 10,
-                            onChanged: controller.previewScheduleCardRadius,
-                            onChangeEnd: controller.setScheduleCardRadius,
-                          ),
-                          _SwitchSetting(
-                            key: const ValueKey('schedule-border-switch'),
-                            title: '课程边框',
-                            description: '为课程块增加细描边',
-                            value: controller.scheduleShowBorder.value,
-                            onChanged: controller.setScheduleShowBorder,
-                          ),
-                          _SliderSetting(
-                            key: const ValueKey('schedule-border-width-slider'),
-                            title: '描边粗细',
-                            description: '调整课程边框线条粗细',
-                            value: controller.scheduleBorderWidth.value,
-                            valueLabel: controller.scheduleBorderWidth.value
-                                .toStringAsFixed(1),
-                            minimum: 0.5,
-                            maximum: 2.5,
-                            divisions: 4,
-                            onChanged: controller.previewScheduleBorderWidth,
-                            onChangeEnd: controller.setScheduleBorderWidth,
-                            enabled: controller.scheduleShowBorder.value,
-                          ),
-                          _SwitchSetting(
-                            key: const ValueKey('schedule-top-line-switch'),
-                            title: '顶部横线',
-                            description: '显示课程色彩识别线',
-                            value: controller.scheduleShowTopLine.value,
-                            onChanged: controller.setScheduleShowTopLine,
-                          ),
-                          _SwitchSetting(
-                            key: const ValueKey('schedule-grid-lines-switch'),
-                            title: '背景横线',
-                            description: '显示节次之间的横向辅助线',
-                            value: controller.scheduleShowGridLines.value,
-                            onChanged: controller.setScheduleShowGridLines,
-                            showDivider: false,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      _SettingsGroup(
-                        title: '显示内容',
-                        children: [
-                          _SwitchSetting(
-                            key: const ValueKey(
-                              'schedule-current-time-line-switch',
-                            ),
-                            title: '当前时间线',
-                            description: '在本周课表中标记当前时间位置',
-                            value: controller.scheduleShowCurrentTimeLine.value,
-                            onChanged:
-                                controller.setScheduleShowCurrentTimeLine,
-                          ),
-                          _SwitchSetting(
-                            key: const ValueKey('schedule-location-switch'),
-                            title: '上课地点',
-                            description: '在空间足够时显示地点',
-                            value: controller.scheduleShowLocation.value,
-                            onChanged: controller.setScheduleShowLocation,
-                          ),
-                          _SwitchSetting(
-                            key: const ValueKey('schedule-teacher-switch'),
-                            title: '授课教师',
-                            description: '在空间足够时显示教师',
-                            value: controller.scheduleShowTeacher.value,
-                            onChanged: controller.setScheduleShowTeacher,
-                            showDivider: false,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                          title: '当前时间线',
+                          description: '在本周课表中标记当前时间位置',
+                          value: controller.scheduleShowCurrentTimeLine.value,
+                          onChanged: controller.setScheduleShowCurrentTimeLine,
+                        ),
+                        _SwitchSetting(
+                          key: const ValueKey('schedule-location-switch'),
+                          title: '上课地点',
+                          description: '在空间足够时显示地点',
+                          value: controller.scheduleShowLocation.value,
+                          onChanged: controller.setScheduleShowLocation,
+                        ),
+                        _SwitchSetting(
+                          key: const ValueKey('schedule-teacher-switch'),
+                          title: '授课教师',
+                          description: '在空间足够时显示教师',
+                          value: controller.scheduleShowTeacher.value,
+                          onChanged: controller.setScheduleShowTeacher,
+                          showDivider: false,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -693,15 +686,11 @@ class _CoursePaletteSetting extends StatelessWidget {
   void _showPaletteDrawer(BuildContext context) {
     final saturation = this.saturation;
     final selected = this.selected;
-    showModalBottomSheet<void>(
+    showAppSheet<void>(
       context: context,
-      sheetAnimationStyle: AppMotion.style(context),
-      isScrollControlled: true,
-      backgroundColor: context.colors.surface,
       builder: (sheetContext) => AppSheet(
         title: '课程配色',
         subtitle: '选择一套课程颜色',
-        showClose: false,
         children: [
           for (final (scheme, label) in _coursePaletteOptions) ...[
             _PaletteOption(
@@ -1001,11 +990,8 @@ class _TimeSettings extends StatelessWidget {
   }
 
   void _showTimeEditor(BuildContext context) {
-    showModalBottomSheet<void>(
+    showAppSheet<void>(
       context: context,
-      sheetAnimationStyle: AppMotion.style(context),
-      isScrollControlled: true,
-      backgroundColor: context.colors.surface,
       builder: (sheetContext) => _TimeEditorSheet(
         initialTimes: startTimes,
         initialDuration: periodDuration,
@@ -1216,7 +1202,6 @@ class _TimeEditorSheetState extends State<_TimeEditorSheet> {
       child: AppSheet(
         title: '自定义节次时间',
         subtitle: '下课时间按每节课时长自动计算。',
-        showClose: false,
         maxHeightFactor: 0.9,
         footer: keyboard == 0 ? saveButton : null,
         children: [
@@ -1316,18 +1301,12 @@ class _SettingsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: AppSpace.sm),
-          child: Text(title, style: Theme.of(context).textTheme.labelMedium),
-        ),
-        Material(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          clipBehavior: Clip.antiAlias,
+        AppSectionHeader(title: title),
+        AppPanel(
+          padding: EdgeInsets.zero,
           child: Column(children: children),
         ),
       ],

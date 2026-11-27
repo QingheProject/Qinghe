@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
+import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/widgets/brand_mark.dart';
 import 'package:qinghe_app/app/widgets/reveal.dart';
@@ -53,11 +54,9 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final text = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: colors.canvas,
       body: Stack(
         children: [
           Center(
@@ -73,7 +72,7 @@ class _SplashPageState extends State<SplashPage>
                   offset: const Offset(0, 12),
                   child: Padding(
                     // 补偿字距带来的右侧留白，使字标视觉居中。
-                    padding: const EdgeInsets.only(left: 10),
+                    padding: const EdgeInsets.only(left: AppSpace.md),
                     child: Text(
                       '青禾',
                       style: text.displaySmall?.copyWith(letterSpacing: 10),

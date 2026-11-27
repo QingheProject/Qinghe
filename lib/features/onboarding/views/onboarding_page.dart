@@ -61,7 +61,6 @@ class OnboardingPage extends GetView<OnboardingController> {
   Widget build(BuildContext context) {
     assert(_steps.length == OnboardingController.stepCount);
     return Scaffold(
-      backgroundColor: context.colors.canvas,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -89,7 +88,12 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 12, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpace.xl,
+        AppSpace.sm,
+        AppSpace.md,
+        0,
+      ),
       child: SizedBox(
         height: 48,
         child: Row(
@@ -210,7 +214,7 @@ class _StepViewState extends State<_StepView>
     final content = widget.content;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -275,7 +279,12 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final duration = AppMotion.of(context, AppMotion.medium);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, AppSpace.sm, 24, AppSpace.xl),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpace.xl,
+        AppSpace.sm,
+        AppSpace.xl,
+        AppSpace.xl,
+      ),
       child: Obx(() {
         final step = controller.step.value;
         return Row(

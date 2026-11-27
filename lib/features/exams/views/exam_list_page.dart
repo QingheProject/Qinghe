@@ -1,11 +1,13 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+import 'package:qinghe_app/app/widgets/app_page.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
+import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
 import 'package:qinghe_app/data/models/timetable_exam.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
@@ -17,7 +19,6 @@ class ExamListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final text = Theme.of(context).textTheme;
     final repository = Get.find<LocalTimetableRepository>();
     final table = repository.active;
@@ -26,48 +27,44 @@ class ExamListPage extends StatelessWidget {
     final todayDate = DateTime(today.year, today.month, today.day);
 
     return Scaffold(
-      backgroundColor: colors.canvas,
-      appBar: AppBar(title: const Text('考试信息'), centerTitle: true),
+      appBar: AppBar(title: const Text('考试信息')),
       body: SafeArea(
         top: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: exams.isEmpty
-                ? _EmptyExams(
-                    hasTimetable: table != null,
-                    onImport: () =>
-                        Get.toNamed<void>(AppRoutes.timetableImport),
-                  )
-                : ListView.separated(
-                    key: const ValueKey('exam-list'),
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                    itemCount: exams.length + 1,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            '${table?.config.name ?? '本学期'} · 共 ${exams.length} 场考试',
-                            style: text.labelMedium,
-                          ),
-                        );
-                      }
-                      final exam = exams[index - 1];
-                      return _ExamRow(
-                        exam: exam,
-                        today: todayDate,
-                        colorIndex: table?.examColorIndex(exam) ?? 0,
-                        onTap: () => showExamDialog(
-                          context,
-                          exam,
-                          colorIndex: table?.examColorIndex(exam) ?? 0,
+        child: AppPageContent(
+          child: exams.isEmpty
+              ? _EmptyExams(
+                  hasTimetable: table != null,
+                  onImport: () => Get.toNamed<void>(AppRoutes.timetableImport),
+                )
+              : ListView.separated(
+                  key: const ValueKey('exam-list'),
+                  padding: AppPageContent.padding,
+                  itemCount: exams.length + 1,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppSpace.md),
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '${table?.config.name ?? '本学期'} · 共 ${exams.length} 场考试',
+                          style: text.labelMedium,
                         ),
                       );
-                    },
-                  ),
-          ),
+                    }
+                    final exam = exams[index - 1];
+                    return _ExamRow(
+                      exam: exam,
+                      today: todayDate,
+                      colorIndex: table?.examColorIndex(exam) ?? 0,
+                      onTap: () => showExamDialog(
+                        context,
+                        exam,
+                        colorIndex: table?.examColorIndex(exam) ?? 0,
+                      ),
+                    );
+                  },
+                ),
         ),
       ),
     );
@@ -216,30 +213,15 @@ class _EmptyExams extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-    final text = Theme.of(context).textTheme;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
-      child: Column(
-        children: [
-          Icon(AppIcons.calendarCheck, size: 34, color: colors.inkFaint),
-          const SizedBox(height: AppSpace.md),
-          Text(
-            hasTimetable ? '本学期还没有考试信息' : '导入课表后在这里查看考试',
-            textAlign: TextAlign.center,
-            style: text.titleMedium,
-          ),
-          const SizedBox(height: AppSpace.xs),
-          Text(
-            hasTimetable
-                ? '在教务系统导入时会一起读取考试安排；如果当时没有读到，可以重新导入一次。'
-                : '考试安排随课表一起从教务系统读取，也可用 JSON 导入课表后手动补充。',
-            textAlign: TextAlign.center,
-            style: text.bodySmall,
-          ),
-          const SizedBox(height: AppSpace.lg),
-          AppButton(label: '去导入课表', expand: true, onPressed: onImport),
-        ],
+      padding: AppPageContent.padding,
+      child: AppEmptyState(
+        icon: AppIcons.calendarCheck,
+        title: hasTimetable ? '本学期还没有考试信息' : '导入课表后在这里查看考试',
+        message: hasTimetable
+            ? '在教务系统导入时会一起读取考试安排；如果当时没有读到，可以重新导入一次。'
+            : '考试安排随课表一起从教务系统读取，也可用 JSON 导入课表后手动补充。',
+        action: AppButton(label: '去导入课表', expand: true, onPressed: onImport),
       ),
     );
   }

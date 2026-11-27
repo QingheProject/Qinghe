@@ -15,12 +15,8 @@ Future<void> showScheduleCalendarSheet({
   required BuildContext context,
   required ScheduleController controller,
 }) {
-  return showModalBottomSheet<void>(
+  return showAppSheet<void>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    sheetAnimationStyle: AppMotion.style(context),
-    constraints: const BoxConstraints(maxWidth: 640),
     builder: (_) => _ScheduleCalendarSheet(controller: controller),
   );
 }

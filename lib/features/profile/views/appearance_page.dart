@@ -6,6 +6,8 @@ import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+import 'package:qinghe_app/app/widgets/app_page.dart';
+import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
 
 class AppearancePage extends GetView<AppearanceController> {
@@ -14,91 +16,87 @@ class AppearancePage extends GetView<AppearanceController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('外观'), centerTitle: true),
+      appBar: AppBar(title: const Text('外观')),
       body: SafeArea(
         top: false,
         child: Obx(
-          () => ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-            children: [
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 640),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _ChoiceSection<AppearanceThemeMode>(
-                        title: '主题',
-                        selected: controller.themeMode.value,
-                        onChanged: controller.setThemeMode,
-                        options: [
-                          _AppearanceOption(
-                            value: AppearanceThemeMode.system,
-                            label: '跟随系统',
-                            preview: _ThemePreview.system(
-                              controller.accentTone.value,
-                            ),
+          () => AppPageContent(
+            child: ListView(
+              padding: AppPageContent.padding,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _ChoiceSection<AppearanceThemeMode>(
+                      title: '主题',
+                      selected: controller.themeMode.value,
+                      onChanged: controller.setThemeMode,
+                      options: [
+                        _AppearanceOption(
+                          value: AppearanceThemeMode.system,
+                          label: '跟随系统',
+                          preview: _ThemePreview.system(
+                            controller.accentTone.value,
                           ),
-                          _AppearanceOption(
-                            value: AppearanceThemeMode.light,
-                            label: '浅色',
-                            preview: _ThemePreview.light(
-                              controller.accentTone.value,
-                            ),
+                        ),
+                        _AppearanceOption(
+                          value: AppearanceThemeMode.light,
+                          label: '浅色',
+                          preview: _ThemePreview.light(
+                            controller.accentTone.value,
                           ),
-                          _AppearanceOption(
-                            value: AppearanceThemeMode.dark,
-                            label: '深色',
-                            preview: _ThemePreview.dark(
-                              controller.accentTone.value,
-                            ),
+                        ),
+                        _AppearanceOption(
+                          value: AppearanceThemeMode.dark,
+                          label: '深色',
+                          preview: _ThemePreview.dark(
+                            controller.accentTone.value,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpace.xxl),
-                      _ChoiceSection<AppAccentTone>(
-                        title: '主题配色',
-                        selected: controller.accentTone.value,
-                        onChanged: controller.setAccentTone,
-                        options: const [
-                          _AppearanceOption(
-                            value: AppAccentTone.qinghe,
-                            label: '青禾',
-                            preview: _AccentPreview(AppAccentTone.qinghe),
-                          ),
-                          _AppearanceOption(
-                            value: AppAccentTone.ocean,
-                            label: '海蓝',
-                            preview: _AccentPreview(AppAccentTone.ocean),
-                          ),
-                          _AppearanceOption(
-                            value: AppAccentTone.violet,
-                            label: '暮紫',
-                            preview: _AccentPreview(AppAccentTone.violet),
-                          ),
-                          _AppearanceOption(
-                            value: AppAccentTone.amber,
-                            label: '暖橙',
-                            preview: _AccentPreview(AppAccentTone.amber),
-                          ),
-                          _AppearanceOption(
-                            value: AppAccentTone.rose,
-                            label: '玫瑰',
-                            preview: _AccentPreview(AppAccentTone.rose),
-                          ),
-                          _AppearanceOption(
-                            value: AppAccentTone.monochrome,
-                            label: '黑白',
-                            preview: _AccentPreview(AppAccentTone.monochrome),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpace.xxl),
+                    _ChoiceSection<AppAccentTone>(
+                      title: '主题配色',
+                      selected: controller.accentTone.value,
+                      onChanged: controller.setAccentTone,
+                      options: const [
+                        _AppearanceOption(
+                          value: AppAccentTone.qinghe,
+                          label: '青禾',
+                          preview: _AccentPreview(AppAccentTone.qinghe),
+                        ),
+                        _AppearanceOption(
+                          value: AppAccentTone.ocean,
+                          label: '海蓝',
+                          preview: _AccentPreview(AppAccentTone.ocean),
+                        ),
+                        _AppearanceOption(
+                          value: AppAccentTone.violet,
+                          label: '暮紫',
+                          preview: _AccentPreview(AppAccentTone.violet),
+                        ),
+                        _AppearanceOption(
+                          value: AppAccentTone.amber,
+                          label: '暖橙',
+                          preview: _AccentPreview(AppAccentTone.amber),
+                        ),
+                        _AppearanceOption(
+                          value: AppAccentTone.rose,
+                          label: '玫瑰',
+                          preview: _AccentPreview(AppAccentTone.rose),
+                        ),
+                        _AppearanceOption(
+                          value: AppAccentTone.monochrome,
+                          label: '黑白',
+                          preview: _AccentPreview(AppAccentTone.monochrome),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -144,10 +142,7 @@ class _ChoiceSection<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: AppSpace.sm),
-          child: Text(title, style: Theme.of(context).textTheme.labelMedium),
-        ),
+        AppSectionHeader(title: title),
         LayoutBuilder(
           builder: (context, constraints) {
             const gap = AppSpace.sm;

@@ -142,6 +142,11 @@ class _AddLessonPageState extends State<AddLessonPage> {
           ),
           TextButton(
             key: const ValueKey('edit-lesson-delete-confirm'),
+            style: TextButton.styleFrom(
+              foregroundColor:
+                  Theme.of(context).inputDecorationTheme.errorStyle?.color ??
+                  Theme.of(context).colorScheme.error,
+            ),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('删除'),
           ),

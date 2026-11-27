@@ -66,12 +66,8 @@ Future<void> showScheduleWeekSheet({
   final appearance = Get.isRegistered<AppearanceController>()
       ? Get.find<AppearanceController>()
       : null;
-  return showModalBottomSheet<void>(
+  return showAppSheet<void>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    sheetAnimationStyle: AppMotion.style(context),
-    backgroundColor: context.colors.surface,
     builder: (sheetContext) => _WeekSheet(
       weeks: weeks,
       selectedWeek: selectedWeek,

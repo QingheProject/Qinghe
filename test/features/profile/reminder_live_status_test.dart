@@ -12,6 +12,27 @@ void main() {
   );
   tearDown(Get.reset);
 
+  testWidgets('宽窗口中的提醒设置与页面内容区对齐', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const QingheApp());
+    await tester.pumpAndSettle();
+    Get.toNamed<void>(AppRoutes.reminders);
+    await tester.pumpAndSettle();
+
+    final scroll = tester.getRect(
+      find.byKey(const ValueKey('reminder-settings-scroll')),
+    );
+    final card = tester.getRect(
+      find.byKey(const ValueKey('reminder-class-card')),
+    );
+    expect(scroll.width, 640);
+    expect(scroll.center.dx, 640);
+    expect(card.left - scroll.left, 20);
+    expect(scroll.right - card.right, 20);
+  });
+
   testWidgets('提醒设置页说明实时通知的展示方式与焦点通知状态', (tester) async {
     await tester.pumpWidget(const QingheApp());
     await tester.pumpAndSettle();

@@ -1,21 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
-import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
-import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/app_sheet.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 
 /// 课表设置抽屉：把与课表相关的设置集中在这里，不再散落到别处。
 Future<void> showScheduleSettingsSheet(BuildContext context) {
-  return showModalBottomSheet<void>(
+  return showAppSheet<void>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    sheetAnimationStyle: AppMotion.style(context),
-    backgroundColor: context.colors.surface,
     builder: (sheetContext) => const _SettingsSheet(),
   );
 }

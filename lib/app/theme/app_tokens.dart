@@ -6,6 +6,7 @@ abstract final class AppSpace {
   static const lg = 16.0;
   static const xl = 20.0;
   static const xxl = 28.0;
+  static const pageMaxWidth = 640.0;
 }
 
 /// 圆角刻度。整体保持克制，避免大面积胶囊形状。

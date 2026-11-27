@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/app.dart';
+import 'package:qinghe_app/app/theme/app_theme.dart';
 import 'package:qinghe_app/data/import/timetable_import.dart';
 import 'package:qinghe_app/data/models/semester_config.dart';
 import 'package:qinghe_app/data/models/timetable_exam.dart';
 import 'package:qinghe_app/data/models/timetable_rule.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 import 'package:qinghe_app/features/schedule/controllers/schedule_controller.dart';
+import 'package:qinghe_app/features/schedule/widgets/exam_sheet.dart';
 import 'package:qinghe_app/features/schedule/widgets/schedule_period_label.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -65,6 +67,50 @@ Map<String, Object> _seededPreferences({required List<TimetableExam> exams}) {
 
 void main() {
   tearDown(Get.reset);
+
+  testWidgets('短窗口可滚动考试详情并始终显示关闭按钮', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 256));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final exam = TimetableExam(
+      id: 'example-exam',
+      courseName: '示例考试',
+      date: DateTime(2026, 11, 25),
+      location: '示例教室',
+      seat: '12',
+      note: List.filled(25, '请提前十五分钟到达考场。').join(),
+      sourceNote: '示例考试安排',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showExamDialog(context, exam),
+              child: const Text('打开'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('打开'));
+    await tester.pumpAndSettle();
+
+    final source = find.text('示例考试安排');
+    final close = find.byTooltip('关闭');
+    expect(source.hitTestable(), findsNothing);
+    expect(close.hitTestable(), findsOneWidget);
+
+    await tester.ensureVisible(source);
+    await tester.pumpAndSettle();
+    expect(source.hitTestable(), findsOneWidget);
+    expect(close.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(close);
+    await tester.pumpAndSettle();
+    expect(find.text('示例考试'), findsNothing);
+  });
 
   testWidgets('有考试的日子在课表里带标记，点开能看考试详情', (tester) async {
     // 选一个不是「今天」的日子：当天的标记点会盖住考试点。

@@ -4,6 +4,7 @@ import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+import 'package:qinghe_app/app/widgets/app_page.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
 import 'package:qinghe_app/app/widgets/app_sheet.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
@@ -90,10 +91,8 @@ class _SchoolPickerPageState extends State<SchoolPickerPage> {
 
   /// 手动填写列表之外的学校。
   Future<void> _enterOtherSchool() async {
-    final name = await showModalBottomSheet<String>(
+    final name = await showAppSheet<String>(
       context: context,
-      isScrollControlled: true,
-      sheetAnimationStyle: AppMotion.style(context),
       builder: (_) => _OtherSchoolSheet(initial: _query),
     );
     if (!mounted || name == null || name.isEmpty) return;
@@ -109,113 +108,117 @@ class _SchoolPickerPageState extends State<SchoolPickerPage> {
     final selected = widget.selected.trim();
 
     return Scaffold(
-      backgroundColor: colors.canvas,
-      appBar: AppBar(title: const Text('选择学校'), centerTitle: true),
+      appBar: AppBar(title: const Text('选择学校')),
       body: SafeArea(
         top: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                  child: TextField(
-                    key: const ValueKey('school-search-field'),
-                    controller: _search,
-                    textInputAction: TextInputAction.search,
-                    onChanged: (_) => setState(() {}),
-                    style: text.bodyMedium,
-                    decoration: InputDecoration(
-                      hintText: '搜索学校名称或首字母',
-                      prefixIcon: Icon(
-                        AppIcons.search,
-                        size: 20,
-                        color: colors.inkMuted,
-                      ),
-                      suffixIcon: _query.isEmpty
-                          ? null
-                          : IconButton(
-                              tooltip: '清空搜索',
-                              onPressed: () => setState(_search.clear),
-                              icon: const Icon(AppIcons.close, size: 18),
-                            ),
-                      isDense: true,
+        child: AppPageContent(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.xl,
+                  vertical: AppSpace.sm,
+                ),
+                child: TextField(
+                  key: const ValueKey('school-search-field'),
+                  controller: _search,
+                  textInputAction: TextInputAction.search,
+                  onChanged: (_) => setState(() {}),
+                  style: text.bodyMedium,
+                  decoration: InputDecoration(
+                    hintText: '搜索学校名称或首字母',
+                    prefixIcon: Icon(
+                      AppIcons.search,
+                      size: 20,
+                      color: colors.inkMuted,
                     ),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: '清空搜索',
+                            onPressed: () => setState(_search.clear),
+                            icon: const Icon(AppIcons.close, size: 18),
+                          ),
+                    isDense: true,
                   ),
                 ),
-                Expanded(
-                  child: groups.isEmpty
-                      ? _EmptyResult(
-                          query: _query,
-                          onUseQuery: () => _pick(_query),
-                          onManual: _enterOtherSchool,
-                        )
-                      : Stack(
-                          children: [
-                            ListView.builder(
-                              key: const ValueKey('school-list'),
-                              controller: _scroll,
-                              padding: const EdgeInsets.only(right: 26),
-                              itemCount:
-                                  groups.length * 1 +
-                                  groups.values.fold<int>(
-                                    0,
-                                    (sum, list) => sum + list.length,
-                                  ),
-                              itemBuilder: (context, index) {
-                                var cursor = 0;
-                                for (final entry in groups.entries) {
+              ),
+              Expanded(
+                child: groups.isEmpty
+                    ? _EmptyResult(
+                        query: _query,
+                        onUseQuery: () => _pick(_query),
+                        onManual: _enterOtherSchool,
+                      )
+                    : Stack(
+                        children: [
+                          ListView.builder(
+                            key: const ValueKey('school-list'),
+                            controller: _scroll,
+                            padding: const EdgeInsets.only(right: 26),
+                            itemCount:
+                                groups.length * 1 +
+                                groups.values.fold<int>(
+                                  0,
+                                  (sum, list) => sum + list.length,
+                                ),
+                            itemBuilder: (context, index) {
+                              var cursor = 0;
+                              for (final entry in groups.entries) {
+                                if (index == cursor) {
+                                  return _LetterHeader(
+                                    letter: entry.key,
+                                    count: entry.value.length,
+                                    height: _headerHeight,
+                                  );
+                                }
+                                cursor++;
+                                for (final source in entry.value) {
                                   if (index == cursor) {
-                                    return _LetterHeader(
-                                      letter: entry.key,
-                                      count: entry.value.length,
-                                      height: _headerHeight,
+                                    return SizedBox(
+                                      height: _rowHeight,
+                                      child: _SchoolRow(
+                                        source: source,
+                                        selected: source.school == selected,
+                                        onTap: () => _pick(source.school),
+                                      ),
                                     );
                                   }
                                   cursor++;
-                                  for (final source in entry.value) {
-                                    if (index == cursor) {
-                                      return SizedBox(
-                                        height: _rowHeight,
-                                        child: _SchoolRow(
-                                          source: source,
-                                          selected: source.school == selected,
-                                          onTap: () => _pick(source.school),
-                                        ),
-                                      );
-                                    }
-                                    cursor++;
-                                  }
                                 }
-                                return const SizedBox.shrink();
-                              },
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                          Positioned(
+                            top: 0,
+                            bottom: 0,
+                            right: 0,
+                            child: _LetterIndex(
+                              letters: letters,
+                              onSelected: _jumpTo,
                             ),
-                            Positioned(
-                              top: 0,
-                              bottom: 0,
-                              right: 0,
-                              child: _LetterIndex(
-                                letters: letters,
-                                onSelected: _jumpTo,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpace.xl,
+                  AppSpace.xs,
+                  AppSpace.xl,
+                  AppSpace.md,
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                  child: AppButton(
-                    label: '找不到学校？手动填写',
-                    tone: AppButtonTone.secondary,
-                    expand: true,
-                    dense: true,
-                    icon: AppIcons.edit,
-                    onPressed: _enterOtherSchool,
-                  ),
+                child: AppButton(
+                  label: '找不到学校？手动填写',
+                  tone: AppButtonTone.secondary,
+                  expand: true,
+                  dense: true,
+                  icon: AppIcons.edit,
+                  onPressed: _enterOtherSchool,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -434,7 +437,6 @@ class _OtherSchoolSheetState extends State<_OtherSchoolSheet> {
       child: AppSheet(
         title: '手动填写学校',
         subtitle: '列表之外的学校不能使用教务系统，可用 JSON 导入课表。',
-        showClose: false,
         footer: AppButton(
           label: '使用该学校',
           expand: true,

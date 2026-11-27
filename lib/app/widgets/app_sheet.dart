@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+
+Future<T?> showAppSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    builder: builder,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: false,
+    sheetAnimationStyle: AppMotion.style(context),
+  );
+}
 
 /// 应用内所有底部抽屉的统一外壳。
 ///
@@ -71,8 +86,8 @@ class AppSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
+                    child: Semantics(
+                      header: true,
                       child: Text(title, style: text.titleMedium),
                     ),
                   ),
@@ -82,10 +97,9 @@ class AppSheet extends StatelessWidget {
                       onPressed: () => Navigator.of(context).pop(),
                       tooltip: '关闭',
                       constraints: const BoxConstraints.tightFor(
-                        width: 34,
-                        height: 34,
+                        width: 44,
+                        height: 44,
                       ),
-                      padding: EdgeInsets.zero,
                       icon: const Icon(AppIcons.close, size: 20),
                     ),
                 ],
@@ -138,7 +152,6 @@ class AppSheet extends StatelessWidget {
 
 /// 抽屉标题右侧的文字操作，例如「回到本周」。
 ///
-/// 用固定高度与较小的横向内边距，保证和标题、关闭按钮在同一水平线上。
 class AppSheetAction extends StatelessWidget {
   const AppSheetAction({
     required this.label,
@@ -152,20 +165,17 @@ class AppSheetAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return SizedBox(
-      height: 34,
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: VisualDensity.compact,
-          textStyle: Theme.of(context).textTheme.labelMedium,
-          foregroundColor: colors.accent,
-        ),
-        child: Text(label),
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpace.sm),
+        minimumSize: const Size(0, 44),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.standard,
+        textStyle: Theme.of(context).textTheme.labelMedium,
+        foregroundColor: colors.accent,
       ),
+      child: Text(label),
     );
   }
 }

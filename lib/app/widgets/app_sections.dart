@@ -48,8 +48,12 @@ class AppSectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpace.md),
       child: Row(
         children: [
-          Semantics(header: true, child: Text(title, style: text.titleLarge)),
-          const Spacer(),
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(title, style: text.titleLarge),
+            ),
+          ),
           if (actionLabel != null)
             Pressable(
               onTap: onAction,

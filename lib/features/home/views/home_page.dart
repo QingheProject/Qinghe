@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/utils/formatters.dart';
+import 'package:qinghe_app/app/widgets/app_page.dart';
 import 'package:qinghe_app/app/widgets/reveal.dart';
 import 'package:qinghe_app/features/home/controllers/home_controller.dart';
 import 'package:qinghe_app/features/home/widgets/focus_lesson_card.dart';
@@ -101,33 +102,21 @@ class _HomePageState extends State<HomePage>
             ),
         ];
 
-        return ListView(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            16,
-            20,
-            MediaQuery.paddingOf(context).bottom + 24,
-          ),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (var i = 0; i < sections.length; i++) ...[
-                      if (i > 0) const SizedBox(height: AppSpace.xl),
-                      Reveal.step(
-                        animation: _entrance,
-                        index: i,
-                        child: sections[i],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+        return AppPageContent(
+          child: ListView(
+            padding: AppPageContent.padding.copyWith(
+              bottom:
+                  MediaQuery.paddingOf(context).bottom +
+                  AppSpace.xl +
+                  AppSpace.xs,
             ),
-          ],
+            children: [
+              for (var i = 0; i < sections.length; i++) ...[
+                if (i > 0) const SizedBox(height: AppSpace.xl),
+                Reveal.step(animation: _entrance, index: i, child: sections[i]),
+              ],
+            ],
+          ),
         );
       }),
     );

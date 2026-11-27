@@ -48,11 +48,22 @@ abstract final class AppTheme {
         closeButtonIconBuilder: (context) => const Icon(AppIcons.close),
       ),
       appBarTheme: AppBarTheme(
+        centerTitle: true,
+        titleTextStyle: text.titleLarge,
         iconTheme: IconThemeData(size: 24, color: colors.ink),
         backgroundColor: colors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: colors.ink,
+          textStyle: text.labelLarge,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+          ),
+        ),
       ),
       listTileTheme: ListTileThemeData(
         titleTextStyle: text.bodyMedium,
@@ -141,6 +152,7 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         modalElevation: 0,
+        constraints: const BoxConstraints(maxWidth: AppSpace.pageMaxWidth),
         // 遮罩始终是黑色：暗色主题里 ink 是近白色，直接用它会把遮罩变亮。
         modalBarrierColor: Colors.black.withValues(
           alpha: brightness == Brightness.dark ? 0.62 : 0.32,

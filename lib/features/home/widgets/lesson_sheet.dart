@@ -4,9 +4,11 @@ import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
+import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/utils/formatters.dart';
 import 'package:qinghe_app/app/widgets/app_button.dart';
+import 'package:qinghe_app/app/widgets/app_detail_dialog.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
 import 'package:qinghe_app/data/models/timetable_rule.dart';
@@ -24,6 +26,9 @@ Future<void> showLessonDialog(
   return showDialog<void>(
     context: context,
     barrierLabel: '关闭课程详情',
+    animationStyle: AppMotion.reduced(context)
+        ? AnimationStyle.noAnimation
+        : null,
     builder: (context) => _LessonDialog(lesson: lesson, date: date),
   );
 }
@@ -73,7 +78,6 @@ class _LessonDialogState extends State<_LessonDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final text = Theme.of(context).textTheme;
     final appearance = Get.isRegistered<AppearanceController>()
         ? Get.find<AppearanceController>()
@@ -86,162 +90,70 @@ class _LessonDialogState extends State<_LessonDialog> {
     );
     final rule = _rule;
     final week = _week;
+    final date = widget.date;
 
-    return Semantics(
-      container: true,
+    return AppDetailDialog(
       label: '课程详情',
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: 520,
-              maxHeight: MediaQuery.sizeOf(context).height * 0.82,
-            ),
-            child: Material(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              clipBehavior: Clip.antiAlias,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 26,
-                          margin: const EdgeInsets.only(top: 4),
-                          decoration: BoxDecoration(
-                            color: tone.foreground,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpace.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _lesson.courseName,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: text.headlineSmall,
-                              ),
-                              if (widget.date case final date?)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: Text(
-                                    '${date.month}月${date.day}日 · '
-                                    '${weekdayLabel(date.weekday)}'
-                                    '${week == null ? '' : ' · 第$week周'}',
-                                    style: text.bodySmall,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          tooltip: '关闭',
-                          icon: const Icon(AppIcons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.lg),
-                    AppPanel(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpace.lg,
-                        vertical: AppSpace.sm,
-                      ),
-                      child: Column(
-                        children: [
-                          _DetailRow(
-                            icon: AppIcons.clock,
-                            label: '时间',
-                            value:
-                                '${formatClock(_lesson.startMinute)} – '
-                                '${formatClock(_lesson.endMinute)}',
-                          ),
-                          _DetailRow(
-                            icon: AppIcons.rows,
-                            label: '节次',
-                            value: formatPeriods(
-                              _lesson.startPeriod,
-                              _lesson.endPeriod,
-                            ),
-                          ),
-                          if (_lesson.location.isNotEmpty)
-                            _DetailRow(
-                              icon: AppIcons.location,
-                              label: '地点',
-                              value: _lesson.location,
-                            ),
-                          if (_lesson.teacher.isNotEmpty)
-                            _DetailRow(
-                              icon: AppIcons.user,
-                              label: '教师',
-                              value: _lesson.teacher,
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (rule != null) ...[
-                      const SizedBox(height: AppSpace.xl),
-                      AppButton(
-                        key: const ValueKey('lesson-sheet-edit'),
-                        icon: AppIcons.edit,
-                        label: '编辑课程',
-                        expand: true,
-                        onPressed: () => _edit(rule),
-                      ),
-                    ] else ...[
-                      const SizedBox(height: AppSpace.lg),
-                      Text(
-                        '在课表中导入或新建课程后可编辑信息。',
-                        textAlign: TextAlign.center,
-                        style: text.bodySmall,
-                      ),
-                    ],
-                  ],
-                ),
+      title: _lesson.courseName,
+      subtitle: date != null
+          ? '${date.month}月${date.day}日 · '
+                '${weekdayLabel(date.weekday)}'
+                '${week == null ? '' : ' · 第$week周'}'
+          : null,
+      markerColor: tone.foreground,
+      children: [
+        AppPanel(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.lg,
+            vertical: AppSpace.sm,
+          ),
+          child: Column(
+            children: [
+              AppDetailRow(
+                icon: AppIcons.clock,
+                label: '时间',
+                value:
+                    '${formatClock(_lesson.startMinute)} – '
+                    '${formatClock(_lesson.endMinute)}',
               ),
-            ),
+              AppDetailRow(
+                icon: AppIcons.rows,
+                label: '节次',
+                value: formatPeriods(_lesson.startPeriod, _lesson.endPeriod),
+              ),
+              if (_lesson.location.isNotEmpty)
+                AppDetailRow(
+                  icon: AppIcons.location,
+                  label: '地点',
+                  value: _lesson.location,
+                ),
+              if (_lesson.teacher.isNotEmpty)
+                AppDetailRow(
+                  icon: AppIcons.user,
+                  label: '教师',
+                  value: _lesson.teacher,
+                ),
+            ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final text = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: colors.inkFaint),
-          const SizedBox(width: AppSpace.md),
-          SizedBox(width: 44, child: Text(label, style: text.labelMedium)),
-          Expanded(child: Text(value, style: text.bodyMedium)),
+        if (rule != null) ...[
+          const SizedBox(height: AppSpace.xl),
+          AppButton(
+            key: const ValueKey('lesson-sheet-edit'),
+            icon: AppIcons.edit,
+            label: '编辑课程',
+            expand: true,
+            onPressed: () => _edit(rule),
+          ),
+        ] else ...[
+          const SizedBox(height: AppSpace.lg),
+          Text(
+            '在课表中导入或新建课程后可编辑信息。',
+            textAlign: TextAlign.center,
+            style: text.bodySmall,
+          ),
         ],
-      ),
+      ],
     );
   }
 }

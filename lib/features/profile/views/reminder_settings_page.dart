@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qinghe_app/app/reminder_controller.dart';
 import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_icons.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
+import 'package:qinghe_app/app/widgets/app_page.dart';
 import 'package:qinghe_app/app/widgets/app_field_label.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/pressable.dart';
@@ -22,8 +23,7 @@ class ReminderSettingsPage extends StatelessWidget {
     final repository = Get.find<LocalTimetableRepository>();
 
     return Scaffold(
-      backgroundColor: context.colors.canvas,
-      appBar: AppBar(title: const Text('课程提醒'), centerTitle: true),
+      appBar: AppBar(title: const Text('课程提醒')),
       body: SafeArea(
         top: false,
         child: Obx(() {
@@ -34,71 +34,75 @@ class ReminderSettingsPage extends StatelessWidget {
               ? null
               : exams.reduce((a, b) => a.date.isBefore(b.date) ? a : b);
 
-          return ListView(
-            key: const ValueKey('reminder-settings-scroll'),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-            children: [
-              _ReminderCard(
-                key: const ValueKey('reminder-class-card'),
-                title: '上课提醒',
-                hint: '每节课开始前提醒你，内容含课程名、时间与地点。',
-                enabled: settings.classEnabled,
-                minutes: settings.classLeadMinutes.value,
-                onToggle: (value) =>
-                    _apply(context, () => settings.setClassEnabled(value)),
-                onMinutes: (minutes) => _apply(
-                  context,
-                  () => settings.setClassLeadMinutes(minutes),
-                ),
-              ),
-              const SizedBox(height: AppSpace.md),
-              _ReminderCard(
-                key: const ValueKey('reminder-exam-card'),
-                title: '考试提醒',
-                hint: upcoming == null
-                    ? '还没有读到考试安排，导入考试信息后生效。'
-                    : '最近一场：${upcoming.courseName} · '
-                          '${upcoming.date.month}月${upcoming.date.day}日 '
-                          '${upcoming.timeLabel}',
-                enabled: settings.examEnabled,
-                minutes: settings.examLeadMinutes.value,
-                onToggle: (value) =>
-                    _apply(context, () => settings.setExamEnabled(value)),
-                onMinutes: (minutes) =>
-                    _apply(context, () => settings.setExamLeadMinutes(minutes)),
-              ),
-              const SizedBox(height: AppSpace.md),
-              const _LiveStatusCard(),
-              const SizedBox(height: AppSpace.md),
-              AppListGroup(
-                children: [
-                  AppListRow(
-                    key: const ValueKey('reminder-preview-live'),
-                    icon: AppIcons.lightning,
-                    title: '预览上课中通知',
-                    subtitle: '发一条示例实时通知，20 秒后自动收回',
-                    onTap: () async {
-                      if (!Get.isRegistered<CourseNotifications>()) return;
-                      await Get.find<CourseNotifications>().previewLive();
-                      if (context.mounted) {
-                        showAppToast(context, '已发送，可下拉通知栏查看');
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpace.md),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  '修改后会自动重排通知；提醒时间最长为 2 天。'
-                  '上课中的实时通知由系统在状态栏展示，展开通知可查看课程与进度。',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: context.colors.inkMuted,
+          return AppPageContent(
+            child: ListView(
+              key: const ValueKey('reminder-settings-scroll'),
+              padding: AppPageContent.padding,
+              children: [
+                _ReminderCard(
+                  key: const ValueKey('reminder-class-card'),
+                  title: '上课提醒',
+                  hint: '每节课开始前提醒你，内容含课程名、时间与地点。',
+                  enabled: settings.classEnabled,
+                  minutes: settings.classLeadMinutes.value,
+                  onToggle: (value) =>
+                      _apply(context, () => settings.setClassEnabled(value)),
+                  onMinutes: (minutes) => _apply(
+                    context,
+                    () => settings.setClassLeadMinutes(minutes),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpace.md),
+                _ReminderCard(
+                  key: const ValueKey('reminder-exam-card'),
+                  title: '考试提醒',
+                  hint: upcoming == null
+                      ? '还没有读到考试安排，导入考试信息后生效。'
+                      : '最近一场：${upcoming.courseName} · '
+                            '${upcoming.date.month}月${upcoming.date.day}日 '
+                            '${upcoming.timeLabel}',
+                  enabled: settings.examEnabled,
+                  minutes: settings.examLeadMinutes.value,
+                  onToggle: (value) =>
+                      _apply(context, () => settings.setExamEnabled(value)),
+                  onMinutes: (minutes) => _apply(
+                    context,
+                    () => settings.setExamLeadMinutes(minutes),
+                  ),
+                ),
+                const SizedBox(height: AppSpace.md),
+                const _LiveStatusCard(),
+                const SizedBox(height: AppSpace.md),
+                AppListGroup(
+                  children: [
+                    AppListRow(
+                      key: const ValueKey('reminder-preview-live'),
+                      icon: AppIcons.lightning,
+                      title: '预览上课中通知',
+                      subtitle: '发一条示例实时通知，20 秒后自动收回',
+                      onTap: () async {
+                        if (!Get.isRegistered<CourseNotifications>()) return;
+                        await Get.find<CourseNotifications>().previewLive();
+                        if (context.mounted) {
+                          showAppToast(context, '已发送，可下拉通知栏查看');
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpace.md),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    '修改后会自动重排通知；提醒时间最长为 2 天。'
+                    '上课中的实时通知由系统在状态栏展示，展开通知可查看课程与进度。',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: context.colors.inkMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           );
         }),
       ),
