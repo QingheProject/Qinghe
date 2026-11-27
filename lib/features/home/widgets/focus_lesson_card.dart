@@ -104,10 +104,13 @@ class _LessonCard extends StatelessWidget {
                   Row(
                     children: [
                       _GlassTag(label: ongoing ? '进行中' : '下一节'),
-                      const Spacer(),
-                      Text(
-                        formatPeriods(lesson.startPeriod, lesson.endPeriod),
-                        style: text.labelMedium?.copyWith(color: soft),
+                      const SizedBox(width: AppSpace.sm),
+                      Expanded(
+                        child: Text(
+                          formatPeriods(lesson.startPeriod, lesson.endPeriod),
+                          textAlign: TextAlign.end,
+                          style: text.labelMedium?.copyWith(color: soft),
+                        ),
                       ),
                     ],
                   ),
@@ -144,23 +147,20 @@ class _LessonCard extends StatelessWidget {
                       remaining: lesson.endMinute - minuteOfDay,
                     )
                   else
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          formatDuration(lesson.startMinute - minuteOfDay),
-                          style: text.headlineSmall?.copyWith(
-                            color: onAccent,
-                            fontSize: 26,
+                    Text.rich(
+                      TextSpan(
+                        text: formatDuration(lesson.startMinute - minuteOfDay),
+                        style: text.headlineSmall?.copyWith(
+                          color: onAccent,
+                          fontSize: 26,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: ' 后开始',
+                            style: text.labelMedium?.copyWith(color: soft),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '后开始',
-                          style: text.labelMedium?.copyWith(color: soft),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                 ],
               ),
@@ -185,14 +185,17 @@ class _Progress extends StatelessWidget {
     final onAccent = colors.onAccent;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            Text(
-              '还剩 ${formatDuration(remaining)}',
-              style: text.labelLarge?.copyWith(color: onAccent),
+            Expanded(
+              child: Text(
+                '还剩 ${formatDuration(remaining)}',
+                style: text.labelLarge?.copyWith(color: onAccent),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: AppSpace.sm),
             Text(
               '${(value * 100).round()}%',
               style: text.labelMedium?.copyWith(
@@ -206,22 +209,13 @@ class _Progress extends StatelessWidget {
           tween: Tween(begin: 0, end: value),
           duration: AppMotion.of(context, AppMotion.slow),
           curve: AppMotion.emphasized,
-          builder: (context, v, _) => Container(
-            height: 4,
-            decoration: BoxDecoration(
-              color: onAccent.withValues(alpha: 0.24),
-              borderRadius: BorderRadius.circular(2),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: v,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: onAccent,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
+          builder: (context, value, _) => LinearProgressIndicator(
+            value: value,
+            minHeight: 4,
+            borderRadius: BorderRadius.circular(2),
+            color: onAccent,
+            backgroundColor: onAccent.withValues(alpha: 0.24),
+            semanticsLabel: '上课进度',
           ),
         ),
       ],
@@ -271,11 +265,13 @@ class _IconText extends StatelessWidget {
       children: [
         Icon(icon, size: 15, color: color),
         const SizedBox(width: 5),
-        Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(color: color),
+        Flexible(
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: color),
+          ),
         ),
       ],
     );

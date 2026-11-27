@@ -96,8 +96,9 @@ void main() {
     await persistedProfile.load();
     expect(persistedProfile.nickname, '示例昵称');
 
-    expect(find.text('今日课程'), findsNothing);
-    expect(find.text('今天没有课'), findsNothing);
+    expect(find.text('今日课程'), findsOneWidget);
+    expect(find.text('今天没有课'), findsOneWidget);
+    expect(find.text('共 0 次课'), findsOneWidget);
     expect(find.text('快捷入口'), findsNothing);
   });
 
@@ -122,7 +123,7 @@ void main() {
     await tester.tap(find.text('稍后导入'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.text('今日课程'), findsNothing);
+    expect(find.text('今日课程'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('nav-schedule')));
     await tester.pumpAndSettle();

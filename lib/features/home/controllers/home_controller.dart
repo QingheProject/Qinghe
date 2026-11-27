@@ -19,6 +19,15 @@ class HomeController extends GetxController {
 
   int? get teachingWeek => _repository.teachingWeekOn(now.value);
 
+  List<({DateTime date, int count})> get weekActivity {
+    final today = now.value;
+    final monday = today.day - (today.weekday - DateTime.monday);
+    return List.generate(DateTime.daysPerWeek, (index) {
+      final date = DateTime(today.year, today.month, monday + index);
+      return (date: date, count: _repository.lessonsOn(date).length);
+    });
+  }
+
   LessonOccurrence? get focusLesson => pickFocusLesson(lessons, minuteOfDay);
 
   int get remainingCount => lessons
