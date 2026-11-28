@@ -18,10 +18,7 @@ double semesterProgressOf(Timetable table, DateTime now) {
   return now.isBefore(table.config.week1Monday) ? 0.0 : 1.0;
 }
 
-/// 我的页面的学期进度卡：用一圈「周刻度」表现学期走到哪一周。
-///
-/// 每一格是一个教学周，已经过去的周逐格点亮，当前周加粗并带光晕；中间的
-/// 数字是当前教学周。整圈在出现时按周次依次点亮，读起来是进度而不是装饰。
+/// 我的页面的学期进度卡，外环显示进度，内侧刻度对应教学周。
 class SemesterProgressCard extends StatefulWidget {
   const SemesterProgressCard({
     required this.timetable,
@@ -62,9 +59,11 @@ class _SemesterProgressCardState extends State<SemesterProgressCard>
   void didUpdateWidget(SemesterProgressCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.timetable?.id != widget.timetable?.id) {
-      _controller
-        ..reset()
-        ..forward();
+      if (AppMotion.reduced(context)) {
+        _controller.value = 1;
+      } else {
+        _controller.forward(from: 0);
+      }
     }
   }
 
@@ -284,7 +283,6 @@ class _Meta extends StatelessWidget {
   }
 }
 
-/// 周刻度环：每格一个教学周，已过的周用强调色淡染，当前周加粗带光晕。
 class _WeekDialPainter extends CustomPainter {
   const _WeekDialPainter({
     required this.progress,
@@ -304,39 +302,47 @@ class _WeekDialPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final radius = size.shortestSide / 2 - 5;
+    final radius = size.shortestSide / 2 - 6;
     final total = math.max(weeks, 1);
     final step = 2 * math.pi / total;
-    final gap = math.min(step * 0.32, 0.16);
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final passedTint = accent.withValues(alpha: 0.55);
+    const start = -math.pi / 2;
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round
+      ..color = track;
+    canvas.drawCircle(center, radius, ring);
+    if (progress > 0) {
+      canvas.drawArc(
+        rect,
+        start,
+        2 * math.pi * progress,
+        false,
+        ring..color = accent,
+      );
+    }
 
     for (var index = 0; index < total; index++) {
-      final angle = -math.pi / 2 + index * step;
-      final lit = (progress * total - index).clamp(0.0, 1.0);
-      final isCurrent = currentWeek != null && index == currentWeek! - 1;
-      final color = Color.lerp(track, isCurrent ? accent : passedTint, lit)!;
-      final paint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = isCurrent ? 7 : 5
-        ..strokeCap = StrokeCap.round
-        ..color = color;
-      canvas.drawArc(rect, angle + gap / 2, step - gap, false, paint);
-      if (isCurrent && lit > 0) {
-        // 当前周外圈加一点柔光，让「这一周」在环上能被一眼认出来。
-        canvas.drawArc(
-          rect,
-          angle + gap / 2,
-          step - gap,
-          false,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 12
-            ..strokeCap = StrokeCap.round
-            ..color = accent.withValues(alpha: 0.16 * lit),
-        );
-      }
+      final angle = start + (index + 1) * step;
+      final direction = Offset(math.cos(angle), math.sin(angle));
+      final isCurrent =
+          currentWeek == index + 1 && progress * total >= index + 0.5;
+      final passed = progress * total >= index + 1;
+      canvas.drawLine(
+        center + direction * (radius - (isCurrent ? 13 : 11)),
+        center + direction * (radius - 8),
+        Paint()
+          ..strokeWidth = isCurrent ? 2 : 1
+          ..strokeCap = StrokeCap.round
+          ..color = isCurrent || passed ? accent : track,
+      );
     }
+    if (currentWeek == null || progress == 0) return;
+    final angle = start + progress * 2 * math.pi;
+    final end = center + Offset(math.cos(angle), math.sin(angle)) * radius;
+    canvas.drawCircle(end, 5, Paint()..color = accent);
+    canvas.drawCircle(end, 2, Paint()..color = track);
   }
 
   @override
