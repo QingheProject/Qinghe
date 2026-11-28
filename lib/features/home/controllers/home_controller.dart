@@ -19,11 +19,16 @@ class HomeController extends GetxController {
 
   int? get teachingWeek => _repository.teachingWeekOn(now.value);
 
-  List<({DateTime date, int count})> get weekActivity {
+  List<({DateTime date, int count})> get courseActivity {
     final today = now.value;
     final monday = today.day - (today.weekday - DateTime.monday);
-    return List.generate(DateTime.daysPerWeek, (index) {
-      final date = DateTime(today.year, today.month, monday + index);
+    const weeks = 4;
+    return List.generate(weeks * DateTime.daysPerWeek, (index) {
+      final date = DateTime(
+        today.year,
+        today.month,
+        monday - (weeks - 1) * DateTime.daysPerWeek + index,
+      );
       return (date: date, count: _repository.lessonsOn(date).length);
     });
   }

@@ -2,18 +2,25 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:qinghe_app/app/appearance_controller.dart';
+import 'package:qinghe_app/app/student_profile_controller.dart';
+import 'package:qinghe_app/app/theme/app_colors.dart';
 import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/app/theme/app_tokens.dart';
 import 'package:qinghe_app/app/utils/formatters.dart';
+import 'package:qinghe_app/app/widgets/app_academic_summary.dart';
 import 'package:qinghe_app/app/widgets/app_page.dart';
+import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/app/widgets/app_tag.dart';
 import 'package:qinghe_app/app/widgets/reveal.dart';
 import 'package:qinghe_app/data/models/lesson_occurrence.dart';
+import 'package:qinghe_app/data/repositories/local_academic_repository.dart';
+import 'package:qinghe_app/data/sources/school_registry.dart';
 import 'package:qinghe_app/features/home/controllers/home_controller.dart';
-import 'package:qinghe_app/features/home/widgets/focus_lesson_card.dart';
+import 'package:qinghe_app/features/home/widgets/course_activity_heatmap.dart';
 import 'package:qinghe_app/features/home/widgets/lesson_sheet.dart';
 import 'package:qinghe_app/features/home/widgets/today_lessons.dart';
-import 'package:qinghe_app/features/home/widgets/week_activity_chart.dart';
+import 'package:qinghe_app/features/timetable_import/views/jwxt_grades_page.dart';
 
 /// 首页：当前课程、今日安排和本周课程活跃度。
 class HomePage extends StatefulWidget {
@@ -72,82 +79,56 @@ class _HomePageState extends State<HomePage>
         final lessons = _controller.lessons;
         final minute = _controller.minuteOfDay;
         final teachingWeek = _controller.teachingWeek;
-        final weekActivity = _controller.weekActivity;
+        final courseActivity = _controller.courseActivity;
+        final school = Get.find<StudentProfileController>().school;
+        final academic = Get.find<LocalAcademicRepository>().latestFor(school);
+        final gpaMaximum = SchoolRegistry.forSchool(school)?.gpaMaximum;
+        final appearance = Get.isRegistered<AppearanceController>()
+            ? Get.find<AppearanceController>()
+            : null;
         void openLesson(LessonOccurrence lesson) =>
             showLessonDialog(context, lesson, date: now);
+        void openAcademics(AcademicSnapshot snapshot) => openJwxtGradesPage(
+          context,
+          semester: snapshot.semester,
+          grades: snapshot.grades,
+          gpaMaximum: gpaMaximum,
+        );
 
         final sections = <Widget>[
-          Row(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: AppSpace.sm,
-                      runSpacing: AppSpace.xs,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          '${now.month}月${now.day}日 · ${weekdayLabel(now.weekday)}',
-                          style: text.labelMedium,
-                        ),
-                        if (teachingWeek != null)
-                          AppTag(label: '第 $teachingWeek 周'),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.xs),
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        _controller.greeting,
-                        style: text.displaySmall,
-                      ),
-                    ),
-                  ],
-                ),
+              Wrap(
+                spacing: AppSpace.sm,
+                runSpacing: AppSpace.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    '${now.month}月${now.day}日 · ${weekdayLabel(now.weekday)}',
+                    style: text.labelMedium,
+                  ),
+                  if (teachingWeek != null) AppTag(label: '第 $teachingWeek 周'),
+                ],
               ),
+              const SizedBox(height: AppSpace.xs),
+              AppPageHeader(title: _controller.greeting),
             ],
           ),
-          if (lessons.isNotEmpty)
-            FocusLessonCard(
-              lesson: _controller.focusLesson,
-              minuteOfDay: minute,
-              hasLessonsToday: true,
-              onOpen: openLesson,
-            ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final agenda = TodayLessons(
-                lessons: lessons,
-                minuteOfDay: minute,
-                onOpen: openLesson,
-              );
-              final activity = WeekActivityChart(
-                activity: weekActivity,
-                today: now,
-              );
-              if (constraints.maxWidth >= 560 &&
-                  MediaQuery.textScalerOf(context).scale(16) <= 19) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 6, child: agenda),
-                    const SizedBox(width: AppSpace.xl),
-                    Expanded(flex: 4, child: activity),
-                  ],
-                );
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  agenda,
-                  const SizedBox(height: AppSpace.xl),
-                  activity,
-                ],
-              );
-            },
+          CourseActivityHeatmap(activity: courseActivity, today: now),
+          TodayLessons(
+            lessons: lessons,
+            minuteOfDay: minute,
+            focusLesson: _controller.focusLesson,
+            onOpen: openLesson,
+            colorScheme:
+                appearance?.courseColorScheme.value ?? CourseColorScheme.qinghe,
+            saturation: appearance?.scheduleCourseSaturation.value ?? 1,
+          ),
+          AppAcademicSummary(
+            grades: academic?.grades,
+            gpaMaximum: gpaMaximum,
+            onOpen: academic == null ? null : () => openAcademics(academic),
           ),
         ];
 
