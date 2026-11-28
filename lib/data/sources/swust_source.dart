@@ -25,4 +25,6 @@ final swustSource = SchoolSource(
   },
   examDataPath: '/kwgl/kscx_cxXsksxxIndex.html',
   examDataQuery: const {'doType': 'query', 'gnmkdm': 'N358105'},
+  gradeDataPath: '/cjcx/cjcx_cxDgXscj.html?doType=query&gnmkdm=N305005',
+  gpaMaximum: 5,
 );

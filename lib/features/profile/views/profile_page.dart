@@ -69,6 +69,12 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
                 AppListRow(
+                  icon: AppIcons.upload,
+                  title: '导入数据',
+                  subtitle: '课表、考试与成绩',
+                  onTap: () => Get.toNamed<void>(AppRoutes.timetableImport),
+                ),
+                AppListRow(
                   icon: AppIcons.info,
                   title: '关于青禾',
                   subtitle: '离线大学课表 · 0.1.0',

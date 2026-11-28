@@ -85,7 +85,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             ]
           : null,
       footer: AppButton(
-        label: widget.firstRun ? '继续到课表导入' : '保存资料',
+        label: widget.firstRun ? '继续导入数据' : '保存资料',
         expand: true,
         onPressed: _saving ? null : _save,
       ),

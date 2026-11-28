@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:qinghe_app/data/sources/school_source.dart';
 
 /// 在教务系统页面里执行的取数脚本。
@@ -34,7 +36,7 @@ function qinghePost(payload) {
   } catch (error) {}
 }
 
-function qingheRequest(method, url, body, onText) {
+function qingheRequest(method, url, body, onText, requestId) {
   var request = new XMLHttpRequest();
   request.open(method, url, true);
   request.timeout = $requestTimeoutMillis;
@@ -46,16 +48,16 @@ function qingheRequest(method, url, body, onText) {
   }
   request.onload = function () {
     if (request.status !== 200) {
-      qinghePost({ kind: "error", status: request.status });
+      qinghePost({ kind: "error", status: request.status, requestId: requestId });
       return;
     }
     onText(request.responseText);
   };
   request.onerror = function () {
-    qinghePost({ kind: "error", status: request.status, reason: "network" });
+    qinghePost({ kind: "error", status: request.status, reason: "network", requestId: requestId });
   };
   request.ontimeout = function () {
-    qinghePost({ kind: "error", status: 0, reason: "timeout" });
+    qinghePost({ kind: "error", status: 0, reason: "timeout", requestId: requestId });
   };
   request.send(body);
 }
@@ -140,6 +142,75 @@ $_prelude
   qingheRequest("POST", "$path", body, function (text) {
     qinghePost({ kind: "exams", body: text });
   });
+})();
+''';
+  }
+
+  /// 使用当前登录会话查询全部成绩，只回传显示和筛选需要的字段。
+  static String grades(SchoolSource source, {required int requestId}) {
+    return '''
+(function () {
+$_prelude
+  var id = $requestId;
+  var origin = ${jsonEncode(source.entry.origin)};
+  var path = ${jsonEncode(source.gradeDataPath)};
+  if (window.location.origin !== origin) {
+    qinghePost({ kind: "error", reason: "login", requestId: id });
+    return;
+  }
+
+  var result = [];
+  var seen = 0;
+  function scalar(value) {
+    return typeof value === "string" || typeof value === "number" ? value : null;
+  }
+  function readPage(page) {
+    var body = "xnm=&xqm=&_search=false&queryModel.showCount=100" +
+      "&queryModel.currentPage=" + page +
+      "&queryModel.sortName=&queryModel.sortOrder=asc&time=0";
+    qingheRequest("POST", path, body, function (text) {
+      var data;
+      try { data = JSON.parse(text); } catch (error) {}
+      if (!data || !Array.isArray(data.items)) {
+        qinghePost({ kind: "error", reason: "gradesFormat", requestId: id });
+        return;
+      }
+      for (var index = 0; index < data.items.length; index++) {
+        var row = data.items[index];
+        if (!row || typeof row !== "object") continue;
+        result.push({
+          course: scalar(row.kcmc),
+          courseCode: scalar(row.kch || row.kch_id),
+          score: scalar(row.cj),
+          credit: scalar(row.xf),
+          point: scalar(row.jd),
+          courseType: scalar(row.kcxzmc),
+          examType: scalar(row.ksxzmc || row.ksxz),
+          year: scalar(row.xnmmc || row.xnm),
+          term: scalar(row.xqmmc),
+          termCode: scalar(row.xqm)
+        });
+      }
+      seen += data.items.length;
+      var pages = Number(data.totalPage || 0);
+      var total = Number(data.totalResult || data.totalCount || 0);
+      if ((!data.items.length && (page > 1 || page < pages)) ||
+          (pages && page >= pages && total > seen)) {
+        qinghePost({ kind: "error", reason: "gradesFormat", requestId: id });
+        return;
+      }
+      if (page < pages || (!pages && seen < total)) {
+        if (!data.items.length) {
+          qinghePost({ kind: "error", reason: "gradesFormat", requestId: id });
+          return;
+        }
+        readPage(page + 1);
+        return;
+      }
+      qinghePost({ kind: "grades", rows: result, requestId: id });
+    }, id);
+  }
+  readPage(1);
 })();
 ''';
   }

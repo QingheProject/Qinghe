@@ -3,6 +3,7 @@ import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/app_session.dart';
 import 'package:qinghe_app/app/routes/app_routes.dart';
 import 'package:qinghe_app/app/student_profile_controller.dart';
+import 'package:qinghe_app/data/repositories/local_academic_repository.dart';
 import 'package:qinghe_app/data/repositories/local_timetable_repository.dart';
 
 /// 启动页：并行完成本地准备工作与开场动画，二者都结束后离开。
@@ -12,12 +13,14 @@ class SplashController extends GetxController {
     this._appearance,
     this._profile,
     this._timetable,
+    this._academics,
   );
 
   final AppSession _session;
   final AppearanceController _appearance;
   final StudentProfileController _profile;
   final LocalTimetableRepository _timetable;
+  final LocalAcademicRepository _academics;
   late final Future<void> _ready;
   bool _leaving = false;
 
@@ -33,6 +36,7 @@ class SplashController extends GetxController {
       _appearance.load(),
       _profile.load(),
       _timetable.load(),
+      _academics.load(),
     ]);
   }
 

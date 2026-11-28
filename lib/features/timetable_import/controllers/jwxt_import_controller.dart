@@ -1,13 +1,15 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:get/get.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_exam_parser.dart';
+import 'package:qinghe_app/data/import/jwxt/jwxt_grades.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_import_draft.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_kb_parser.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_scripts.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_semester_options.dart';
 import 'package:qinghe_app/data/import/timetable_import.dart';
+import 'package:qinghe_app/data/repositories/local_academic_repository.dart';
 import 'package:qinghe_app/data/sources/school_source.dart';
 import 'package:qinghe_app/features/timetable_import/widgets/jwxt_browser.dart';
 
@@ -19,17 +21,19 @@ enum JwxtImportStage {
   choosingSemester,
   readingTimetable,
   readingExams,
+  readingGrades,
   fetched,
   failed,
 }
 
-/// 教务导入流程：打开官方页面 → 用户自行登录 → 读取学期与课表 → 交给导入预览。
+/// 用户在官方页面登录后，依次读取课表、考试和全部成绩。
 ///
 /// 控制器只通过 [JwxtBrowser] 与页面交互，不持有任何登录凭证。
 class JwxtImportController extends GetxController {
-  JwxtImportController(this.source);
+  JwxtImportController(this.source, this._academics);
 
   final SchoolSource source;
+  final LocalAcademicRepository _academics;
 
   final stage = JwxtImportStage.opening.obs;
   final error = ''.obs;
@@ -43,26 +47,29 @@ class JwxtImportController extends GetxController {
   final examResult = Rx<JwxtExamParse?>(null);
   final examIssue = ''.obs;
   final examSkipped = <String>[].obs;
+  final gradesResult = Rx<JwxtGrades?>(null);
+  final gradesIssue = ''.obs;
 
   JwxtBrowser? _browser;
   Completer<Map<String, dynamic>>? _pending;
+  int? _pendingRequestId;
+  int _lastRequestId = 0;
 
   static const _timeout = Duration(seconds: 30);
 
-  bool get canReadSemesters =>
-      !isBusy && stage.value != JwxtImportStage.fetched;
+  bool get isBusy => switch (stage.value) {
+    JwxtImportStage.opening ||
+    JwxtImportStage.readingSemesters ||
+    JwxtImportStage.readingTimetable ||
+    JwxtImportStage.readingExams ||
+    JwxtImportStage.readingGrades => true,
+    _ => false,
+  };
 
-  bool get isBusy =>
-      stage.value == JwxtImportStage.opening ||
-      stage.value == JwxtImportStage.readingSemesters ||
-      stage.value == JwxtImportStage.readingTimetable ||
-      stage.value == JwxtImportStage.readingExams;
+  bool get _hasSemester => year.value.isNotEmpty && term.value.isNotEmpty;
 
-  bool get canReadTimetable =>
-      !isBusy &&
-      options.value != null &&
-      year.value.isNotEmpty &&
-      term.value.isNotEmpty;
+  bool get canRead =>
+      _browser != null && !isBusy && (options.value == null || _hasSemester);
 
   String get semesterLabel =>
       options.value?.labelOf(year.value, term.value) ?? '';
@@ -75,6 +82,7 @@ class JwxtImportController extends GetxController {
   void onClose() {
     _pending = null;
     _browser?.dispose();
+    _browser = null;
     super.onClose();
   }
 
@@ -104,10 +112,53 @@ class JwxtImportController extends GetxController {
     }
   }
 
-  /// 读取学年与学期列表，要求用户已经登录。
-  Future<void> readSemesters() async {
+  void selectSemester(String? selectedYear, String? selectedTerm) {
     if (isBusy) return;
+    final nextYear = selectedYear ?? year.value;
+    final nextTerm = selectedTerm ?? term.value;
+    if (year.value == nextYear && term.value == nextTerm) return;
+    year.value = nextYear;
+    term.value = nextTerm;
+    result.value = null;
     error.value = '';
+    stage.value = JwxtImportStage.choosingSemester;
+  }
+
+  /// 首次使用教务页面默认的学期，之后可选择学期重新读取。
+  Future<void> readAll() async {
+    if (!canRead) return;
+    error.value = '';
+    result.value = null;
+    gradesResult.value = null;
+    gradesIssue.value = '';
+    if (options.value == null && !await _readSemesters()) return;
+    if (_browser == null) return;
+    if (!_hasSemester) {
+      stage.value = JwxtImportStage.choosingSemester;
+      return;
+    }
+
+    stage.value = JwxtImportStage.readingTimetable;
+    final timetableIssue = await _readTimetable();
+    if (_browser == null) return;
+    if (timetableIssue == null) {
+      stage.value = JwxtImportStage.readingExams;
+      await _readExams();
+    }
+    if (_browser == null) return;
+    if (source.hasGrades) {
+      stage.value = JwxtImportStage.readingGrades;
+      await _readGrades();
+    }
+    if (_browser == null) return;
+    if (timetableIssue != null) {
+      _fail(timetableIssue);
+    } else {
+      stage.value = JwxtImportStage.fetched;
+    }
+  }
+
+  Future<bool> _readSemesters() async {
     stage.value = JwxtImportStage.readingSemesters;
     try {
       final reply = await _request(JwxtScripts.semesters(source));
@@ -118,7 +169,7 @@ class JwxtImportController extends GetxController {
       options.value = parsed;
       year.value = parsed.defaultYear ?? '';
       term.value = parsed.defaultTerm ?? '';
-      stage.value = JwxtImportStage.choosingSemester;
+      return true;
     } on FormatException catch (failure) {
       _fail(failure.message);
     } on TimeoutException {
@@ -126,13 +177,10 @@ class JwxtImportController extends GetxController {
     } on Exception {
       _fail('读取学期列表失败，请重试。');
     }
+    return false;
   }
 
-  /// 按选择的学年与学期读取课表。
-  Future<void> readTimetable() async {
-    if (isBusy || !canReadTimetable) return;
-    error.value = '';
-    stage.value = JwxtImportStage.readingTimetable;
+  Future<String?> _readTimetable() async {
     try {
       final reply = await _request(
         JwxtScripts.timetable(source, year: year.value, term: term.value),
@@ -146,15 +194,44 @@ class JwxtImportController extends GetxController {
       );
       result.value = parsed;
       skipped.assignAll(parsed.skipped);
-      stage.value = JwxtImportStage.readingExams;
-      await _readExams();
-      stage.value = JwxtImportStage.fetched;
+      return null;
     } on FormatException catch (failure) {
-      _fail(failure.message);
+      return failure.message;
     } on TimeoutException {
-      _fail('读取课表超时，请重新登录后重试。');
+      return '读取课表超时，请重新登录后重试。';
     } on Exception {
-      _fail('读取课表失败，请重试。');
+      return '读取课表失败，请重试。';
+    }
+  }
+
+  Future<void> _readGrades() async {
+    final requestId = ++_lastRequestId;
+    try {
+      final reply = await _request(
+        JwxtScripts.grades(source, requestId: requestId),
+        requestId: requestId,
+        timeout: const Duration(minutes: 1),
+      );
+      if (reply['kind'] != 'grades') {
+        throw const FormatException('教务系统没有返回成绩数据。');
+      }
+      final grades = JwxtGrades.parse(reply['rows']);
+      gradesResult.value = grades;
+      try {
+        await _academics.save((
+          school: source.school,
+          semester: '全部成绩',
+          grades: grades,
+        ));
+      } on Exception {
+        gradesIssue.value = '成绩已读取，但本机保存失败。';
+      }
+    } on FormatException catch (failure) {
+      gradesIssue.value = failure.message;
+    } on TimeoutException {
+      gradesIssue.value = '读取成绩超时，请确认已经登录后重试。';
+    } on Exception {
+      gradesIssue.value = '读取成绩失败，请重试。';
     }
   }
 
@@ -201,6 +278,7 @@ class JwxtImportController extends GetxController {
 
   /// 把读到的课表与考试交给现有的导入预览流程。
   JwxtImportDraft? takeDraft() {
+    if (stage.value != JwxtImportStage.fetched) return null;
     final parsed = result.value;
     if (parsed == null) return null;
     return JwxtImportDraft(
@@ -221,7 +299,10 @@ class JwxtImportController extends GetxController {
     } on FormatException {
       return;
     }
-    if (decoded is! Map<String, dynamic>) return;
+    if (decoded is! Map<String, dynamic> ||
+        decoded['requestId'] != _pendingRequestId) {
+      return;
+    }
     if (decoded['kind'] == 'error') {
       completer.completeError(FormatException(_requestFailure(decoded)));
       return;
@@ -230,6 +311,10 @@ class JwxtImportController extends GetxController {
   }
 
   static String _requestFailure(Map<String, dynamic> reply) {
+    if (reply['reason'] == 'login') return '请先在学校的官方页面完成登录。';
+    if (reply['reason'] == 'gradesFormat') {
+      return '成绩接口未返回可识别的数据，请确认已登录且成绩查询已开放。';
+    }
     if (reply['reason'] == 'timeout') return '教务系统没有响应，请稍后重试。';
     if (reply['reason'] == 'network') return '无法连接教务系统，请检查网络后重试。';
     final status = reply['status'];
@@ -239,16 +324,24 @@ class JwxtImportController extends GetxController {
     return '教务系统返回 HTTP $status，请稍后重试。';
   }
 
-  Future<Map<String, dynamic>> _request(String script) async {
+  Future<Map<String, dynamic>> _request(
+    String script, {
+    int? requestId,
+    Duration timeout = _timeout,
+  }) async {
     final browser = _browser;
     if (browser == null) throw const FormatException('当前平台无法执行取数脚本。');
     final completer = Completer<Map<String, dynamic>>();
     _pending = completer;
+    _pendingRequestId = requestId;
     try {
       await browser.run(script);
-      return await completer.future.timeout(_timeout);
+      return await completer.future.timeout(timeout);
     } finally {
-      if (identical(_pending, completer)) _pending = null;
+      if (identical(_pending, completer)) {
+        _pending = null;
+        _pendingRequestId = null;
+      }
     }
   }
 

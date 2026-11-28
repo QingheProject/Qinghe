@@ -86,7 +86,7 @@ void main() {
       find.byKey(const ValueKey('setup-nickname')),
       '示例昵称',
     );
-    await tester.tap(find.text('继续到课表导入'));
+    await tester.tap(find.text('继续导入数据'));
     await tester.pumpAndSettle();
     expect(find.text('首次设置 · 2 / 3'), findsOneWidget);
     expect(find.text('示例大学 · 需粘贴 JSON 导入'), findsOneWidget);
@@ -165,10 +165,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('课表设置'), findsOneWidget);
     expect(find.text('课表外观'), findsOneWidget);
-    expect(find.text('课表导入'), findsOneWidget);
+    expect(find.text('导入数据'), findsOneWidget);
     expect(find.text('学期与节次'), findsOneWidget);
     expect(find.text('考试信息'), findsOneWidget);
-    await tester.tap(find.byTooltip('关闭').first);
+    await tester.tap(find.text('导入数据'));
+    await tester.pumpAndSettle();
+    expect(find.text('粘贴 JSON'), findsOneWidget);
+    await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('课表设置'), findsNothing);
 
@@ -180,6 +183,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nav-profile')));
     await tester.pumpAndSettle();
     expect(shell.currentIndex.value, 2);
+    await tester.tap(find.text('导入数据'));
+    await tester.pumpAndSettle();
+    expect(find.text('粘贴 JSON'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     final replay = find.text('关于青禾');
     await tester.scrollUntilVisible(
       replay,

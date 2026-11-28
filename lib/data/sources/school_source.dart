@@ -19,6 +19,8 @@ class SchoolSource {
     this.timetablePageQuery = const {},
     this.examDataPath = '',
     this.examDataQuery = const {},
+    this.gradeDataPath = '',
+    this.gpaMaximum,
   });
 
   final String school;
@@ -46,10 +48,13 @@ class SchoolSource {
 
   /// 考试查询接口需要的固定参数。
   final Map<String, String> examDataQuery;
+  final String gradeDataPath;
+  final double? gpaMaximum;
 
   bool get isVerified => status == SchoolSourceStatus.verified;
 
   bool get hasExams => examDataPath.isNotEmpty;
+  bool get hasGrades => gradeDataPath.isNotEmpty;
 
   bool get runsOnThisPlatform => platforms.contains(Platform.operatingSystem);
 

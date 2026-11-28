@@ -17,7 +17,7 @@ import 'package:qinghe_app/features/timetable_setup/views/semester_config_page.d
 import 'package:qinghe_app/features/timetable_setup/widgets/import_source_panel.dart';
 import 'package:qinghe_app/features/timetable_setup/widgets/setup_page.dart';
 
-/// 课表导入：选择导入方式并读取数据，学期与节次在下一步配置。
+/// 选择数据来源，课表可继续到学期与节次配置页。
 class TimetableImportPage extends StatefulWidget {
   const TimetableImportPage({this.firstRun = false, super.key});
 
@@ -113,7 +113,7 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
     if (source == null) return '$school · 需粘贴 JSON 导入';
     if (!source.isVerified) return '$school · 正在验证';
     if (!source.runsOnThisPlatform) return '$school · 当前平台暂未开放';
-    return '$school · 读取学校课表';
+    return '$school · ${source.hasGrades ? '课表、考试与成绩' : '读取学校课表'}';
   }
 
   /// 进入学期与节次配置；已读取的数据会一起带过去。
@@ -156,8 +156,8 @@ class _TimetableImportPageState extends State<TimetableImportPage> {
     final draft = _draft;
     final draftIssue = _draftIssue;
     return SetupPage(
-      title: '课表导入',
-      description: '从教务系统读取，或粘贴 JSON；学期与节次在下一步设置。',
+      title: '导入数据',
+      description: '从教务系统读取课表、考试和成绩，或粘贴 JSON 导入课表。',
       step: widget.firstRun ? 1 : null,
       stepCount: 3,
       actions: widget.firstRun

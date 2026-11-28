@@ -8,14 +8,16 @@ import 'package:qinghe_app/app/widgets/app_page.dart';
 import 'package:qinghe_app/app/widgets/app_field_label.dart';
 import 'package:qinghe_app/app/widgets/app_sections.dart';
 import 'package:qinghe_app/data/import/jwxt/jwxt_semester_options.dart';
+import 'package:qinghe_app/data/repositories/local_academic_repository.dart';
 import 'package:qinghe_app/data/sources/school_source.dart';
 import 'package:qinghe_app/features/timetable_import/controllers/jwxt_import_controller.dart';
+import 'package:qinghe_app/features/timetable_import/views/jwxt_grades_page.dart';
 import 'package:qinghe_app/features/timetable_import/widgets/jwxt_browser.dart';
 
 typedef JwxtBrowserBuilder =
     JwxtBrowser? Function({required ValueChanged<String> onMessage});
 
-/// 教务系统导入页：打开学校官方页面完成登录，再读取课表交给导入预览。
+/// 在学校官方页面登录后，一次读取课表、考试和成绩。
 class JwxtImportPage extends StatefulWidget {
   const JwxtImportPage({
     required this.source,
@@ -37,7 +39,10 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
   @override
   void initState() {
     super.initState();
-    _controller = JwxtImportController(widget.source);
+    _controller = JwxtImportController(
+      widget.source,
+      Get.find<LocalAcademicRepository>(),
+    );
     _browser = widget.browserBuilder(onMessage: _controller.handleMessage);
     if (_browser case final browser?) {
       _controller.attach(browser);
@@ -52,23 +57,11 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
   }
 
   void _runPrimaryAction() {
-    switch (_controller.stage.value) {
-      case JwxtImportStage.fetched:
-        final draft = _controller.takeDraft();
-        if (draft != null) Get.back<Object?>(result: draft);
-      case JwxtImportStage.choosingSemester:
-        _controller.readTimetable();
-      case JwxtImportStage.failed:
-        _controller.options.value == null
-            ? _controller.readSemesters()
-            : _controller.readTimetable();
-      case JwxtImportStage.awaitingLogin:
-      case JwxtImportStage.readingSemesters:
-        _controller.readSemesters();
-      case JwxtImportStage.opening:
-      case JwxtImportStage.readingTimetable:
-      case JwxtImportStage.readingExams:
-        break;
+    if (_controller.stage.value == JwxtImportStage.fetched) {
+      final draft = _controller.takeDraft();
+      if (draft != null) Get.back<Object?>(result: draft);
+    } else {
+      _controller.readAll();
     }
   }
 
@@ -91,8 +84,38 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
       body: SafeArea(
         child: Obx(() {
           final stage = _controller.stage.value;
-          final fetched = _controller.result.value;
+          final busy = _controller.isBusy;
+          final fetched = stage == JwxtImportStage.fetched
+              ? _controller.result.value
+              : null;
           final options = _controller.options.value;
+          final grades = _controller.gradesResult.value;
+          final gradesIssue = _controller.gradesIssue.value;
+          final gradeFeedback = grades == null && gradesIssue.isEmpty
+              ? null
+              : AppListGroup(
+                  children: [
+                    if (grades != null)
+                      AppListRow(
+                        icon: AppIcons.school,
+                        title: '查看成绩与绩点',
+                        subtitle: '全部成绩 · ${grades.grades.length} 条',
+                        onTap: () => openJwxtGradesPage(
+                          context,
+                          semester: '全部成绩',
+                          grades: grades,
+                          gpaMaximum: widget.source.gpaMaximum,
+                        ),
+                      ),
+                    if (gradesIssue.isNotEmpty)
+                      AppListRow(
+                        icon: AppIcons.info,
+                        title: grades == null ? '成绩未获取' : '成绩未保存',
+                        subtitle: gradesIssue,
+                        trailing: const SizedBox.shrink(),
+                      ),
+                  ],
+                );
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -112,6 +135,7 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
                     examCount: _controller.examResult.value?.exams.length ?? 0,
                     examIssue: _controller.examIssue.value,
                     examSkipped: _controller.examSkipped,
+                    gradeFeedback: gradeFeedback,
                   ),
                   (null, final browser?) => ColoredBox(
                     color: colors.surface,
@@ -120,17 +144,18 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
                   _ => const _UnsupportedPanel(),
                 },
               ),
-              if (options != null && fetched == null)
+              if (stage == JwxtImportStage.failed &&
+                  grades != null &&
+                  gradeFeedback != null)
+                AppPageContent(child: gradeFeedback),
+              if (options != null)
                 AppPageContent(
                   child: _SemesterPanel(
                     options: options,
                     year: _controller.year.value,
                     term: _controller.term.value,
-                    enabled: !_controller.isBusy,
-                    onChanged: (year, term) {
-                      if (year != null) _controller.year.value = year;
-                      if (term != null) _controller.term.value = term;
-                    },
+                    enabled: !busy,
+                    onChanged: _controller.selectSemester,
                   ),
                 ),
               AppPageFooter(
@@ -139,13 +164,11 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _ActionBar(
-                      label: _JwxtStageText.button(stage, options != null),
-                      enabled: _canRunPrimary(stage),
-                      busy: _controller.isBusy,
+                      label: _JwxtStageText.button(stage),
+                      enabled: fetched != null || _controller.canRead,
+                      busy: busy,
                       secondaryLabel: fetched == null ? null : '重新读取',
-                      onSecondary: fetched == null
-                          ? null
-                          : _controller.readSemesters,
+                      onSecondary: fetched == null ? null : _controller.readAll,
                       onPressed: _runPrimaryAction,
                     ),
                     const SizedBox(height: AppSpace.sm),
@@ -162,39 +185,30 @@ class _JwxtImportPageState extends State<JwxtImportPage> {
       ),
     );
   }
-
-  bool _canRunPrimary(JwxtImportStage stage) {
-    if (_controller.isBusy || _browser == null) return false;
-    if (stage == JwxtImportStage.choosingSemester) {
-      return _controller.canReadTimetable;
-    }
-    return true;
-  }
 }
 
 abstract final class _JwxtStageText {
   static String status(JwxtImportStage stage) => switch (stage) {
     JwxtImportStage.opening => '正在打开学校登录页面…',
-    JwxtImportStage.awaitingLogin => '请在上方页面完成登录，然后读取课表。',
+    JwxtImportStage.awaitingLogin => '请先在上方页面登录，再点击「一键读取」。',
     JwxtImportStage.readingSemesters => '正在读取学期列表…',
     JwxtImportStage.choosingSemester => '选择要导入的学年与学期。',
     JwxtImportStage.readingTimetable => '正在读取课表…',
     JwxtImportStage.readingExams => '正在读取考试信息…',
-    JwxtImportStage.fetched => '课表已读取，请核对后使用。',
+    JwxtImportStage.readingGrades => '正在读取全部成绩…',
+    JwxtImportStage.fetched => '读取完成。可核对课表、查看成绩或更换学期。',
     JwxtImportStage.failed => '操作未完成，请按提示处理后重试。',
   };
 
-  static String button(JwxtImportStage stage, bool hasOptions) =>
-      switch (stage) {
-        JwxtImportStage.opening => '正在打开…',
-        JwxtImportStage.awaitingLogin => '我已登录，读取学期',
-        JwxtImportStage.readingSemesters => '读取中…',
-        JwxtImportStage.choosingSemester => '读取本学期课表',
-        JwxtImportStage.readingTimetable => '读取中…',
-        JwxtImportStage.readingExams => '读取中…',
-        JwxtImportStage.fetched => '使用这份课表',
-        JwxtImportStage.failed => hasOptions ? '重试读取课表' : '重试读取学期',
-      };
+  static String button(JwxtImportStage stage) => switch (stage) {
+    JwxtImportStage.opening => '正在打开…',
+    JwxtImportStage.readingSemesters ||
+    JwxtImportStage.readingTimetable ||
+    JwxtImportStage.readingExams ||
+    JwxtImportStage.readingGrades => '读取中…',
+    JwxtImportStage.fetched => '使用这份课表',
+    _ => '一键读取',
+  };
 }
 
 class _StatusBar extends StatelessWidget {
@@ -345,6 +359,7 @@ class _ResultPanel extends StatelessWidget {
     required this.examCount,
     required this.examIssue,
     required this.examSkipped,
+    required this.gradeFeedback,
   });
 
   final String semester;
@@ -353,6 +368,7 @@ class _ResultPanel extends StatelessWidget {
   final int examCount;
   final String examIssue;
   final List<String> examSkipped;
+  final Widget? gradeFeedback;
 
   @override
   Widget build(BuildContext context) {
@@ -402,6 +418,10 @@ class _ResultPanel extends StatelessWidget {
               ],
             ),
           ),
+          if (gradeFeedback case final feedback?) ...[
+            const SizedBox(height: AppSpace.md),
+            feedback,
+          ],
           if (skipped.isNotEmpty) ...[
             const SizedBox(height: AppSpace.md),
             AppPanel(

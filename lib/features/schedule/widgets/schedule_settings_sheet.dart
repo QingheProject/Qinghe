@@ -45,8 +45,8 @@ class _SettingsSheet extends StatelessWidget {
             AppListRow(
               key: const ValueKey('schedule-settings-import'),
               icon: AppIcons.upload,
-              title: '课表导入',
-              subtitle: '教务系统、JSON',
+              title: '导入数据',
+              subtitle: '课表、考试与成绩',
               onTap: () => open(AppRoutes.timetableImport),
             ),
             AppListRow(
