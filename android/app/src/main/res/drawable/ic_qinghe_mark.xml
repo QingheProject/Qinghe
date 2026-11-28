@@ -1,0 +1,24 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- White sprout from BrandMark, inset for adaptive launcher masks. -->
+    <group
+        android:pivotX="50"
+        android:pivotY="50"
+        android:scaleX="0.75"
+        android:scaleY="0.75">
+        <path
+            android:pathData="M50,78 C50,64 50,50 50,40 M32,78 L68,78"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="5.5"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M50,62 C40,62 26,56 24,42 C38,42 48,50 50,62 Z M50,48 C56,34 67,25 79,25 C79,39 67,49 50,48 Z"
+            android:fillColor="#FFFFFFFF"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="5.5"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

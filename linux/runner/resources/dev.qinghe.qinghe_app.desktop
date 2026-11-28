@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=青禾
+Exec=qinghe_app
+Icon=dev.qinghe.qinghe_app
+Terminal=false
+Categories=Office;Calendar;
