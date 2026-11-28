@@ -77,8 +77,8 @@ class ProfilePage extends StatelessWidget {
                 AppListRow(
                   icon: AppIcons.info,
                   title: '关于青禾',
-                  subtitle: '离线大学课表 · 0.1.0',
-                  onTap: () => showAppToast(context, '青禾 0.1.0'),
+                  subtitle: '版本、项目与作者',
+                  onTap: () => Get.toNamed<void>(AppRoutes.about),
                 ),
               ],
             ),

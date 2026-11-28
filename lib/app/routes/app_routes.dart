@@ -9,6 +9,7 @@
   static const jsonImport = '/json-import';
   static const addLesson = '/add-lesson';
   static const reminders = '/reminders';
+  static const about = '/about';
   static const semesterConfig = '/semester-config';
   static const exams = '/exams';
   static const jwxtImport = '/jwxt-import';

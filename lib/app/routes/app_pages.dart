@@ -4,6 +4,7 @@ import 'package:qinghe_app/app/theme/app_motion.dart';
 import 'package:qinghe_app/data/sources/school_source.dart';
 import 'package:qinghe_app/features/course_edit/views/add_lesson_page.dart';
 import 'package:qinghe_app/features/exams/views/exam_list_page.dart';
+import 'package:qinghe_app/features/profile/views/about_page.dart';
 import 'package:qinghe_app/features/profile/views/reminder_settings_page.dart';
 import 'package:qinghe_app/features/onboarding/bindings/onboarding_binding.dart';
 import 'package:qinghe_app/features/onboarding/views/onboarding_page.dart';
@@ -74,6 +75,12 @@ abstract final class AppPages {
     GetPage<void>(
       name: AppRoutes.reminders,
       page: ReminderSettingsPage.new,
+      transition: Transition.rightToLeft,
+      transitionDuration: AppMotion.medium,
+    ),
+    GetPage<void>(
+      name: AppRoutes.about,
+      page: AboutPage.new,
       transition: Transition.rightToLeft,
       transitionDuration: AppMotion.medium,
     ),

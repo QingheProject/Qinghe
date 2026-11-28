@@ -1,6 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:qinghe_app/app/app.dart';
 import 'package:qinghe_app/app/appearance_controller.dart';
 import 'package:qinghe_app/app/student_profile_controller.dart';
@@ -188,13 +190,54 @@ void main() {
     expect(find.text('粘贴 JSON'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    final replay = find.text('关于青禾');
+    final about = find.text('关于青禾');
     await tester.scrollUntilVisible(
-      replay,
+      about,
       220,
       scrollable: _scrollableIn('profile-scroll'),
     );
-    expect(replay, findsOneWidget);
+    PackageInfo.setMockInitialValues(
+      appName: '青禾',
+      packageName: 'dev.qinghe.example',
+      version: '2.3.4',
+      buildNumber: '12',
+      buildSignature: '',
+    );
+    await tester.tap(about);
+    await tester.pumpAndSettle();
+    expect(find.text('2.3.4（构建 12）'), findsOneWidget);
+    expect(find.text('QingheProject/Qinghe'), findsOneWidget);
+    expect(find.text('作者'), findsOneWidget);
+    expect(find.text('作者 QQ'), findsOneWidget);
+    expect(find.text('赞助 QQ'), findsNothing);
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    String? copiedLink;
+    MethodCall? copyFeedback;
+    const feedbackChannel = MethodChannel(
+      'dev.qinghe.qinghe_app/clipboard_feedback',
+    );
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        copiedLink = (call.arguments as Map)['text'] as String;
+      }
+      return null;
+    });
+    messenger.setMockMethodCallHandler(feedbackChannel, (call) async {
+      copyFeedback = call;
+      return null;
+    });
+    await tester.tap(find.text('GitHub 仓库'));
+    await tester.pumpAndSettle();
+    expect(copiedLink, 'https://github.com/QingheProject/Qinghe');
+    expect(copyFeedback?.method, 'showAfterCopy');
+    expect(copyFeedback?.arguments, '已复制 GitHub 仓库链接');
+    expect(find.byType(SnackBar), findsNothing);
+    messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+    messenger.setMockMethodCallHandler(feedbackChannel, null);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('profile-scroll')), findsOneWidget);
   });
 
   testWidgets('左右滑动不再切换主要页面，只响应导航点击', (tester) async {

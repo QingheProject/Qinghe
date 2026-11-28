@@ -12,6 +12,7 @@ import android.graphics.Canvas
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -41,7 +42,20 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+        MethodChannel(messenger, "dev.qinghe.qinghe_app/clipboard_feedback")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "showAfterCopy") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val message = call.arguments as? String
+                if (message != null) {
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                }
+                result.success(null)
+            }
+        channel = MethodChannel(messenger, channelName)
             .apply {
                 setMethodCallHandler { call, result ->
                     when (call.method) {
